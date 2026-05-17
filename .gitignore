@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+data/
+.env
+.DS_Store
+*.log
+examples/scenario_a_response.json
+tests/_artifacts/

@@ -1,0 +1,53 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ai-knowledge-tracing:latest
+    container_name: akt-api
+    network_mode: host
+    env_file: .env
+    environment:
+      APP_HOST: "0.0.0.0"
+      APP_PORT: "8000"
+      LLM_CA_BUNDLE: /app/ca-bundle.pem
+      EXAMS_DIR: /app/exams
+    volumes:
+      - ./out:/app/out:ro
+      - ./theory_economics.md:/app/theory_economics.md:ro
+      - ./data/ca-bundle.pem:/app/ca-bundle.pem:ro
+      - ./data/exams:/app/exams
+      - chroma_data:/app/data
+      - hf_cache:/root/.cache/huggingface
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/healthz"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 30s
+    restart: unless-stopped
+
+  ingest:
+    profiles: ["ingest"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ai-knowledge-tracing:latest
+    container_name: akt-ingest
+    network_mode: host
+    env_file: .env
+    environment:
+      LLM_CA_BUNDLE: /app/ca-bundle.pem
+      EXAMS_DIR: /app/exams
+    command: ["python", "-m", "app.rag.ingest"]
+    volumes:
+      - ./out:/app/out:ro
+      - ./theory_economics.md:/app/theory_economics.md:ro
+      - ./data/ca-bundle.pem:/app/ca-bundle.pem:ro
+      - ./data/exams:/app/exams
+      - chroma_data:/app/data
+      - hf_cache:/root/.cache/huggingface
+
+volumes:
+  chroma_data:
+  hf_cache:
