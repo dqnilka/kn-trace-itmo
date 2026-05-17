@@ -1,12 +1,98 @@
+# =============================================================================
+# Python
+# =============================================================================
 .venv/
+venv/
+.python-version
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+*.egg-info/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
-data/
+.tox/
+.coverage
+htmlcov/
+
+# =============================================================================
+# Node / Frontend
+# =============================================================================
+node_modules/
+frontend/dist/
+frontend/vite.log
+*.tsbuildinfo
+
+# =============================================================================
+# Secrets — НИКОГДА не коммитить
+# =============================================================================
 .env
+.env.local
+.env.*.local
+terraform/terraform.tfvars
+terraform/*.tfvars
+!terraform/terraform.tfvars.example
+terraform/*-key.json
+terraform/*.key.json
+
+# =============================================================================
+# Terraform state
+# =============================================================================
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/.terraform.lock.hcl
+terraform/crash.log
+terraform/crash.*.log
+
+# =============================================================================
+# Runtime data (regenerable artifacts)
+# =============================================================================
+data/
+# Исключения: keep .gitkeep / structural markers if any (none right now)
+
+# Бэкапы графа от strict pipeline
+**/backups/
+
+# LLM cache (regenerable, не нужно коммитить)
+data/llm_cache/
+
+# =============================================================================
+# IDE / Editor
+# =============================================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# =============================================================================
+# OS metadata
+# =============================================================================
 .DS_Store
+Thumbs.db
+desktop.ini
+
+# =============================================================================
+# Logs & test artifacts
+# =============================================================================
 *.log
-examples/scenario_a_response.json
 tests/_artifacts/
+out/*.log
+
+# =============================================================================
+# Legacy / archived response fixtures
+# Эти конкретные json — артефакты старого pipeline, см. README.
+# =============================================================================
+examples/scenario_a_response.json
+examples/scenario_a_response.before_fix.json
+examples/scenario_a_response.fix*.json
+examples/scenario_a_response.rerank_blend*.json
+
+# =============================================================================
+# Temp / scratch
+# =============================================================================
+t.md
+*.tmp
+*.bak
