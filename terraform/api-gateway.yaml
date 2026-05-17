@@ -27,6 +27,12 @@ paths:
 
   /api/v1/{rest+}:
     x-yc-apigateway-any-method:
+      parameters:
+        - name: rest
+          in: path
+          required: true
+          schema:
+            type: string
       x-yc-apigateway-integration:
         type: serverless_containers
         container_id: ${container_id}

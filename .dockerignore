@@ -9,7 +9,11 @@ __pycache__
 .pytest_cache
 .ruff_cache
 .mypy_cache
-data/
+# data/ — большая часть мусор (logs, ca-bundle, llm_cache).
+# Но для Dockerfile.prod НУЖНЫ data/chroma и data/exams (baked в образ).
+data/*
+!data/chroma
+!data/exams
 .DS_Store
 .env
 *.log
