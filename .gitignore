@@ -47,15 +47,27 @@ terraform/crash.log
 terraform/crash.*.log
 
 # =============================================================================
-# Runtime data (regenerable artifacts)
+# Runtime data
 # =============================================================================
-data/
-# Исключения: keep .gitkeep / structural markers if any (none right now)
+# Игнорируем всё в data/ ПО УМОЛЧАНИЮ — потом исключения для baked-in артефактов.
+data/*
 
-# Бэкапы графа от strict pipeline
-**/backups/
+# Исключения: эти артефакты нужны для prod-сборки (Dockerfile.prod COPY их),
+# а также для CI (actions/checkout тянет только git-tracked).
+!data/chroma
+!data/exams
 
-# LLM cache (regenerable, не нужно коммитить)
+# Внутри data/exams — игнорируем runtime-побочки (per-user mastery, event log,
+# LLM-cache суммари, логи pipeline). Источники истины (bank/graph/theory)
+# коммитим.
+data/exams/*/users/
+data/exams/*/events.jsonl
+data/exams/*/theme_summaries/
+data/exams/*/runs/
+data/exams/*/backups/
+data/exams/*/sources/
+
+# LLM-cache регенерируется, не коммитим
 data/llm_cache/
 
 # =============================================================================

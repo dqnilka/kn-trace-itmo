@@ -16,13 +16,11 @@
 
 name: Deploy to Yandex Cloud
 
+# Только ручной запуск через Actions → Run workflow.
+# Когда добавишь все 8 secrets (см. terraform/SETUP.md шаг 8) и протестируешь
+# успешный ручной запуск — можно раскомментировать push-trigger ниже для
+# авто-деплоя при push в master.
 on:
-  push:
-    branches: [master]
-    paths-ignore:
-      - "**.md"
-      - "docs/**"
-      - "terraform/**"
   workflow_dispatch:
     inputs:
       backend:
@@ -31,6 +29,12 @@ on:
       frontend:
         type: boolean
         default: true
+  # push:
+  #   branches: [master]
+  #   paths-ignore:
+  #     - "**.md"
+  #     - "docs/**"
+  #     - "terraform/**"
 
 jobs:
   deploy:
@@ -39,6 +43,29 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Verify all required secrets are set
+        env:
+          YC_SA_KEY_FILE: ${{ secrets.YC_SA_KEY_FILE }}
+          YC_CLOUD_ID:    ${{ secrets.YC_CLOUD_ID }}
+          YC_FOLDER_ID:   ${{ secrets.YC_FOLDER_ID }}
+          YC_CR_ID:       ${{ secrets.YC_CR_ID }}
+          YC_CONTAINER_ID: ${{ secrets.YC_CONTAINER_ID }}
+          YC_BUCKET:      ${{ secrets.YC_BUCKET }}
+          YC_BUCKET_AK:   ${{ secrets.YC_BUCKET_AK }}
+          YC_BUCKET_SK:   ${{ secrets.YC_BUCKET_SK }}
+        run: |
+          missing=()
+          for var in YC_SA_KEY_FILE YC_CLOUD_ID YC_FOLDER_ID YC_CR_ID YC_CONTAINER_ID YC_BUCKET YC_BUCKET_AK YC_BUCKET_SK; do
+            if [ -z "${!var:-}" ]; then missing+=("$var"); fi
+          done
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error ::Missing repository secrets: ${missing[*]}"
+            echo "::error ::Add them at https://github.com/${{ github.repository }}/settings/secrets/actions"
+            echo "::error ::See terraform/SETUP.md step 8 for what to put in each secret."
+            exit 1
+          fi
+          echo "✓ All 8 secrets present"
 
       - name: Install yc CLI
         run: |

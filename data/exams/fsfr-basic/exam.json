@@ -1,0 +1,13 @@
+{
+  "slug": "fsfr-basic",
+  "title": "Базовый экзамен ФСФР",
+  "subtitle": "Базовая программа специалиста финансового рынка",
+  "version": "1.0.0",
+  "published": true,
+  "bank_path": "bank.json",
+  "theory_path": "theory.md",
+  "rag": {
+    "collections": ["md_chunks", "graph_chunks"],
+    "top_k": 6
+  }
+}
