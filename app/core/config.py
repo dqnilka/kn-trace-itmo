@@ -20,16 +20,40 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # --- LLM (Yandex Eliza, OpenAI-compatible) ---
-    soy_token: str | None = Field(default=None, alias="SOY_TOKEN")
+    # --- LLM (OpenAI-compatible HTTP API) ---
+    # Provider-agnostic: configure base URL + model + API key. Works for OpenAI,
+    # OpenRouter, DeepSeek, YandexGPT, Yandex Eliza (corporate), local Ollama,
+    # etc. — anything that exposes /v1/chat/completions.
+    #
+    # Auth: prefer LLM_API_KEY. SOY_TOKEN kept as backward-compatible alias for
+    # legacy .env files from the Yandex Eliza era.
+    llm_api_key: str | None = Field(default=None, alias="LLM_API_KEY")
+    soy_token: str | None = Field(default=None, alias="SOY_TOKEN")  # legacy alias
     llm_base_url: str = Field(
-        default="https://api.eliza.yandex.net/raw/openai/v1",
+        default="https://api.openai.com/v1",
         alias="LLM_BASE_URL",
     )
-    llm_model: str = Field(default="gpt-5.4-nano", alias="LLM_MODEL")
+    llm_model: str = Field(default="gpt-4o-mini", alias="LLM_MODEL")
     llm_timeout_s: float = Field(default=60.0, alias="LLM_TIMEOUT_S")
     llm_max_tokens: int = Field(default=1200, alias="LLM_MAX_TOKENS")
+    # CA bundle is only needed for corporate proxies (Yandex Eliza). Public
+    # endpoints work with the system trust store. Leave empty unless required.
     llm_ca_bundle: str | None = Field(default=None, alias="LLM_CA_BUNDLE")
+
+    # Effective API key with backward-compat fallback (LLM_API_KEY > SOY_TOKEN).
+    @property
+    def effective_api_key(self) -> str | None:
+        return self.llm_api_key or self.soy_token
+
+    # --- LLM budget guard ---
+    # Hard cap on inputs to LLM to prevent accidental token burn. Requests with
+    # bigger context get truncated server-side before sending. 0 = no cap.
+    llm_max_input_chars: int = Field(default=14000, alias="LLM_MAX_INPUT_CHARS")
+    # Disk-cache for explain responses. Detailed comment in services/bank_explain.py
+    llm_cache_dir: Path = Field(default=Path("data/llm_cache"), alias="LLM_CACHE_DIR")
+    llm_cache_enabled: bool = Field(default=True, alias="LLM_CACHE_ENABLED")
+    # Rate-limit (requests/min/IP). 0 = disabled.
+    rate_limit_per_min: int = Field(default=30, alias="RATE_LIMIT_PER_MIN")
 
     # --- Embeddings ---
     embedding_model: str = Field(

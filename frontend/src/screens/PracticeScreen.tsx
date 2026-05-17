@@ -19,15 +19,18 @@ type Phase =
       index: number
       correct: number
       wrong: number
+      answers: boolean[]
       theme: BankTheme
       chapter: BankChapter | null
     }
   | {
       kind: 'done'
       correct: number
+      wrong: number
       total: number
       theme: BankTheme
       chapter: BankChapter | null
+      answers: boolean[] // sequence of correctness for ps2 mini-heatmap
     }
 
 const SESSION_SIZE = 10
@@ -45,11 +48,13 @@ export default function PracticeScreen({
   themeCode,
   onBack,
   onPickAnotherTheme,
+  onOpenTheory,
 }: {
   user: UserState
   themeCode: string
   onBack: () => void
   onPickAnotherTheme: () => void
+  onOpenTheory?: (code: string) => void
 }) {
   const [phase, setPhase] = useState<Phase>({ kind: 'loading' })
   const [bank, setBank] = useState<ExamBank | null>(null)
@@ -79,6 +84,7 @@ export default function PracticeScreen({
           index: 0,
           correct: 0,
           wrong: 0,
+          answers: [],
           theme,
           chapter,
         })
@@ -108,6 +114,7 @@ export default function PracticeScreen({
         index: 0,
         correct: 0,
         wrong: 0,
+        answers: [],
         theme,
         chapter,
       })
@@ -120,14 +127,17 @@ export default function PracticeScreen({
     saveMastery(bumpMastery(loadMastery(), phase.theme.code, outcome.is_correct))
     const nextCorrect = phase.correct + (outcome.is_correct ? 1 : 0)
     const nextWrong = phase.wrong + (outcome.is_correct ? 0 : 1)
+    const nextAnswers = phase.answers.concat(outcome.is_correct)
     const idx = phase.index + 1
     if (idx >= phase.tasks.length) {
       setPhase({
         kind: 'done',
         correct: nextCorrect,
+        wrong: nextWrong,
         total: phase.tasks.length,
         theme: phase.theme,
         chapter: phase.chapter,
+        answers: nextAnswers,
       })
       return
     }
@@ -136,6 +146,7 @@ export default function PracticeScreen({
       index: idx,
       correct: nextCorrect,
       wrong: nextWrong,
+      answers: nextAnswers,
     })
   }
 
@@ -169,6 +180,8 @@ export default function PracticeScreen({
   if (phase.kind === 'done') {
     const pct =
       phase.total === 0 ? 0 : Math.round((phase.correct / phase.total) * 100)
+    // Узел ps3 диаграммы: «3+ ошибки в сессии → рекомендация по главе».
+    const recommendChapter = phase.wrong >= 3 && phase.chapter
     return (
       <div className="screen">
         <div className="screen-body narrow centered">
@@ -183,6 +196,45 @@ export default function PracticeScreen({
               {phase.correct} из {phase.total} верно
             </div>
           </div>
+
+          {/* ps2: «обновлённый heatmap» — последовательность ответов в сессии */}
+          <div className="session-heatmap" title="Хронология ответов">
+            {phase.answers.map((ok, i) => (
+              <div
+                key={i}
+                className={`session-heatmap-cell ${ok ? 'ok' : 'wrong'}`}
+                title={`Вопрос ${i + 1}: ${ok ? 'верно' : 'неверно'}`}
+              >
+                {ok ? '✓' : '✗'}
+              </div>
+            ))}
+          </div>
+
+          {/* ps3 → ps4: рекомендация изучить главу при 3+ ошибках */}
+          {recommendChapter && (
+            <div className="session-recommend">
+              <div className="session-recommend-emoji">📚</div>
+              <div className="session-recommend-body">
+                <div className="session-recommend-title">
+                  В этой сессии {phase.wrong} ошибки — рекомендуем подтянуть
+                  тему перед следующей попыткой.
+                </div>
+                <div className="session-recommend-sub">
+                  Глава {phase.chapter?.num}. {phase.chapter?.name}. Открой
+                  статью в справочнике — там объяснение и связанные понятия.
+                </div>
+                {onOpenTheory && (
+                  <button
+                    className="pill pill-cta"
+                    onClick={() => onOpenTheory(phase.theme.code)}
+                  >
+                    📖 Открыть тему в справочнике
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="actions-row">
             <button className="pill pill-primary" onClick={restart}>
               Ещё раз
@@ -227,8 +279,10 @@ export default function PracticeScreen({
           total={phase.tasks.length}
           chapterName={phase.chapter?.name}
           themeName={phase.theme.name}
+          themeCode={phase.theme.code}
           showInstantFeedback
           onAnswer={onAnswer}
+          onOpenTheory={onOpenTheory}
         />
       </div>
     </div>

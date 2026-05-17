@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import { api } from '../api'
+import SafeMarkdown from './SafeMarkdown'
+import { api, isAbortError } from '../api'
 import { ACTIVE_EXAM_SLUG } from '../state/bank'
 import type { ExplainResponse } from '../types'
 
@@ -24,23 +23,25 @@ export default function ExplainBlock({
 
   useEffect(() => {
     if (!autoFetch) return
-    let cancelled = false
+    const ctrl = new AbortController()
     setLoading(true)
     setErr(null)
     setData(null)
     api
-      .explain(ACTIVE_EXAM_SLUG, taskId, pickedLabel)
+      .explain(ACTIVE_EXAM_SLUG, taskId, pickedLabel, { signal: ctrl.signal })
       .then((r) => {
-        if (!cancelled) setData(r)
+        if (!ctrl.signal.aborted) setData(r)
       })
       .catch((e) => {
-        if (!cancelled) setErr(e instanceof Error ? e.message : String(e))
+        // abort/timeout — это штатное размонтирование, не ошибка UI
+        if (ctrl.signal.aborted || isAbortError(e)) return
+        setErr(e instanceof Error ? e.message : String(e))
       })
       .finally(() => {
-        if (!cancelled) setLoading(false)
+        if (!ctrl.signal.aborted) setLoading(false)
       })
     return () => {
-      cancelled = true
+      ctrl.abort()
     }
   }, [taskId, pickedLabel, autoFetch])
 
@@ -75,9 +76,7 @@ export default function ExplainBlock({
         </span>
       </div>
       <div className="theory feedback-theory">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-          {data.explanation_md}
-        </ReactMarkdown>
+        <SafeMarkdown>{data.explanation_md}</SafeMarkdown>
       </div>
       {data.sources.length > 0 && (
         <details className="explain-sources">

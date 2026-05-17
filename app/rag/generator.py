@@ -148,13 +148,15 @@ class Generator:
     @classmethod
     def from_settings(cls) -> "Generator":
         settings = get_settings()
-        if not settings.soy_token:
+        key = settings.effective_api_key
+        if not key:
             raise RuntimeError(
-                "SOY_TOKEN is not set. The LLM-backed generator cannot start. "
-                "Export SOY_TOKEN in your shell before launching the service."
+                "LLM_API_KEY is not set. Export LLM_API_KEY (or legacy SOY_TOKEN) "
+                "in your shell before launching the service. See .env.example for "
+                "supported providers (OpenAI / OpenRouter / DeepSeek / YandexGPT)."
             )
         return cls(
-            api_key=settings.soy_token,
+            api_key=key,
             base_url=settings.llm_base_url,
             model=settings.llm_model,
             timeout_s=settings.llm_timeout_s,

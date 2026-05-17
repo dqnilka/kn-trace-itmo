@@ -38,6 +38,16 @@ class ExamGraphHealth(BaseModel):
     prereq_edges: int = 0
 
 
+class BudgetSnapshot(BaseModel):
+    """LLM spend so far this process. Cheap to compute; not persisted."""
+
+    input_tokens: int = 0
+    output_tokens: int = 0
+    calls: int = 0
+    cached_hits: int = 0
+    uptime_seconds: int = 0
+
+
 class HealthResponse(BaseModel):
     status: Literal["ok", "degraded"]
     graph_loaded: bool
@@ -45,6 +55,8 @@ class HealthResponse(BaseModel):
     llm_configured: bool
     # Strict per-exam graphs — the source of truth.
     exams: list[ExamGraphHealth] = Field(default_factory=list)
+    # LLM budget meter (resets on process restart).
+    budget: BudgetSnapshot = Field(default_factory=BudgetSnapshot)
 
 
 # ============================================================

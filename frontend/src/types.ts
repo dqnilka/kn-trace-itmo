@@ -31,6 +31,7 @@ export type Health = {
 
 export type Screen =
   | 'onboarding'
+  | 'series'
   | 'entrance'
   | 'results'
   | 'dashboard'
@@ -39,6 +40,9 @@ export type Screen =
   | 'learning'
   | 'theory'
   | 'exam'
+  | 'mock-outcome'
+  | 'final-stretch'
+  | 'real-exam'
   | 'wip'
 
 export type UserState = {

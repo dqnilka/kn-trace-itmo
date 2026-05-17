@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import { api } from '../api'
+import SafeMarkdown from '../components/SafeMarkdown'
+import { api, isAbortError } from '../api'
 import { ACTIVE_EXAM_SLUG } from '../state/bank'
 import { loadMastery, themeScore } from '../state/mastery'
 import type { ThemeArticleResponse, ThemeConcept } from '../types'
@@ -29,26 +28,61 @@ export default function TheoryScreen({
   const [err, setErr] = useState<string | null>(null)
   const [showRaw, setShowRaw] = useState(false)
   const [openConcepts, setOpenConcepts] = useState<Record<string, boolean>>({})
+  const [tldr, setTldr] = useState<boolean>(false) // узел t6a: «Только главное» toggle
+  const [hoverTerm, setHoverTerm] = useState<ThemeConcept | null>(null) // узлы t7/t8
 
   useEffect(() => {
-    let cancelled = false
+    const ctrl = new AbortController()
     setData(null)
     setErr(null)
     setShowRaw(false)
     api
-      .examTheme(ACTIVE_EXAM_SLUG, themeCode)
+      .examTheme(ACTIVE_EXAM_SLUG, themeCode, { signal: ctrl.signal })
       .then((r) => {
-        if (!cancelled) setData(r)
+        if (!ctrl.signal.aborted) setData(r)
       })
       .catch((e) => {
-        if (!cancelled) setErr(e instanceof Error ? e.message : String(e))
+        if (ctrl.signal.aborted || isAbortError(e)) return
+        setErr(e instanceof Error ? e.message : String(e))
       })
     return () => {
-      cancelled = true
+      ctrl.abort()
     }
   }, [themeCode])
 
   const mastery = useMemo(() => themeScore(loadMastery(), themeCode), [themeCode, data])
+
+  // ВАЖНО: все useMemo держим ДО early-return'ов (Rules of Hooks).
+  // Раньше conceptByTerm и tldrText висели после `if (!data) return` —
+  // первый рендер (data=null) их не вызывал, второй (data set) вызывал,
+  // → React: «Rendered more hooks than during the previous render».
+  const hasSummary = !!data?.summary_md?.trim()
+  const conceptsWithDef = useMemo(
+    () => data?.concepts.filter((c) => c.definition.trim().length > 0) ?? [],
+    [data],
+  )
+
+  /**
+   * Парсим **bold** в summary как кликабельные термы — на ховере показываем
+   * краткое определение из списка концептов темы (узлы t7/t8 диаграммы).
+   * Это очень дешёвая эвристика: если **жирный** термин совпадает с одним из
+   * терм-концептов (без регистра), выделяем его.
+   */
+  const conceptByTerm = useMemo(() => {
+    const m = new Map<string, ThemeConcept>()
+    for (const c of conceptsWithDef) {
+      m.set(c.term.toLowerCase().trim(), c)
+    }
+    return m
+  }, [conceptsWithDef])
+
+  const tldrText = useMemo(() => {
+    if (!hasSummary || !data?.summary_md) return ''
+    // первый абзац + первый bullet — обычно ~200 слов
+    const md = data.summary_md.trim()
+    const firstPara = md.split(/\n\s*\n/)[0] ?? ''
+    return firstPara.length < 800 ? md.split(/\n\s*\n/).slice(0, 2).join('\n\n') : firstPara
+  }, [data?.summary_md, hasSummary])
 
   if (err) {
     return (
@@ -89,9 +123,6 @@ export default function TheoryScreen({
       </div>
     )
   }
-
-  const hasSummary = !!data.summary_md?.trim()
-  const conceptsWithDef = data.concepts.filter((c) => c.definition.trim().length > 0)
 
   return (
     <div className="screen theory-screen">
@@ -134,11 +165,59 @@ export default function TheoryScreen({
           </header>
 
           {hasSummary ? (
-            <section className="theory-summary">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {data.summary_md!}
-              </ReactMarkdown>
-            </section>
+            <>
+              <div className="theory-toggle-row">
+                <label className="toggle">
+                  <input
+                    type="checkbox"
+                    checked={tldr}
+                    onChange={(e) => setTldr(e.target.checked)}
+                  />
+                  <span>Только главное</span>
+                  <span className="toggle-meta">
+                    {tldr ? '~200 слов' : 'полная статья'}
+                  </span>
+                </label>
+              </div>
+              <section className="theory-summary">
+                <SafeMarkdown
+                  components={{
+                    strong: ({ children, ...rest }) => {
+                      const txt = String(children ?? '').toLowerCase().trim()
+                      const concept = conceptByTerm.get(txt)
+                      if (!concept) return <strong {...rest}>{children}</strong>
+                      return (
+                        <strong
+                          {...rest}
+                          className="theory-term"
+                          onMouseEnter={() => setHoverTerm(concept)}
+                          onMouseLeave={() =>
+                            setHoverTerm((cur) =>
+                              cur?.id === concept.id ? null : cur,
+                            )
+                          }
+                        >
+                          {children}
+                        </strong>
+                      )
+                    },
+                  }}
+                >
+                  {tldr ? tldrText : data.summary_md!}
+                </SafeMarkdown>
+                {hoverTerm && (
+                  <div className="theory-term-popup">
+                    <div className="theory-term-popup-head">
+                      <strong>{hoverTerm.term}</strong>
+                    </div>
+                    <div className="theory-term-popup-body">
+                      {hoverTerm.definition.slice(0, 320)}
+                      {hoverTerm.definition.length > 320 ? '…' : ''}
+                    </div>
+                  </div>
+                )}
+              </section>
+            </>
           ) : (
             <section className="theory-empty">
               <p className="muted">
@@ -185,9 +264,9 @@ export default function TheoryScreen({
                   <section key={i} className="theory-raw-section">
                     <div className="theory-raw-path">{s.section_path}</div>
                     <div className="theory-raw-text">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      <SafeMarkdown>
                         {(s.excerpt || s.snippet).slice(0, 2000)}
-                      </ReactMarkdown>
+                      </SafeMarkdown>
                     </div>
                   </section>
                 ))}
@@ -198,9 +277,9 @@ export default function TheoryScreen({
 
         <div className="theory-cta">
           <div className="theory-cta-body">
-            <div className="theory-cta-title">Готов проверить себя?</div>
+            <div className="theory-cta-title">Проверить на тесте?</div>
             <div className="theory-cta-meta">
-              {data.task_count} задач в этой теме · на ошибках AI поможет
+              Мини-сессия 5-10 вопросов · {data.task_count} задач в банке темы
             </div>
           </div>
           <button
@@ -208,7 +287,7 @@ export default function TheoryScreen({
             onClick={() => onPractice(themeCode)}
             disabled={data.task_count === 0}
           >
-            Решать задачи →
+            Проверить на тесте →
           </button>
         </div>
       </div>

@@ -1,6 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
+import ErrorBoundary from './components/ErrorBoundary'
 import HealthBadge from './components/HealthBadge'
+import PostExamModal, { markExamTaken } from './components/PostExamModal'
 import OnboardingScreen from './screens/OnboardingScreen'
+import ExamSeriesScreen, { loadSeries } from './screens/ExamSeriesScreen'
 import EntranceTestScreen from './screens/EntranceTestScreen'
 import ResultsScreen from './screens/ResultsScreen'
 import DashboardScreen from './screens/DashboardScreen'
@@ -9,8 +12,11 @@ import AdaptiveSessionScreen from './screens/AdaptiveSessionScreen'
 import LearningPathScreen from './screens/LearningPathScreen'
 import TheoryScreen from './screens/TheoryScreen'
 import ExamVariantScreen from './screens/ExamVariantScreen'
+import MockOutcomeScreen, { type MockOutcomeMode } from './screens/MockOutcomeScreen'
+import FinalStretchScreen from './screens/FinalStretchScreen'
+import RealExamPrepScreen from './screens/RealExamPrepScreen'
 import WipScreen from './screens/WipScreen'
-import { api } from './api'
+import { api, isAbortError } from './api'
 import {
   clearUser,
   loadLastResults,
@@ -27,6 +33,7 @@ import type {
 
 function initialScreen(user: UserState | null, hasResults: boolean): Screen {
   if (!user) return 'onboarding'
+  if (!loadSeries()) return 'series'
   if (!hasResults) return 'entrance'
   return 'dashboard'
 }
@@ -43,21 +50,33 @@ export default function App() {
   const [practiceTheme, setPracticeTheme] = useState<string | null>(null)
   const [theoryTheme, setTheoryTheme] = useState<string | null>(null)
   const [examVariantId, setExamVariantId] = useState<number | null>(null)
+  const [mockOutcome, setMockOutcome] = useState<{
+    mode: MockOutcomeMode
+    pct: number
+  } | null>(null)
+  const [forcePostExam, setForcePostExam] = useState(false)
 
   const [health, setHealth] = useState<Health | null>(null)
   const [healthErr, setHealthErr] = useState<string | null>(null)
 
   useEffect(() => {
     let stop = false
+    let lastCtrl: AbortController | null = null
     const tick = async () => {
+      // Отменяем предыдущий health-запрос, если он ещё в полёте — на медленной
+      // сети они не должны накапливаться и спамить /healthz.
+      lastCtrl?.abort()
+      const ctrl = new AbortController()
+      lastCtrl = ctrl
       try {
-        const h = await api.health()
-        if (!stop) {
+        const h = await api.health({ signal: ctrl.signal, timeoutMs: 8_000 })
+        if (!stop && !ctrl.signal.aborted) {
           setHealth(h)
           setHealthErr(null)
         }
       } catch (e) {
-        if (!stop) setHealthErr(e instanceof Error ? e.message : String(e))
+        if (stop || ctrl.signal.aborted || isAbortError(e)) return
+        setHealthErr(e instanceof Error ? e.message : String(e))
       }
     }
     tick()
@@ -65,13 +84,16 @@ export default function App() {
     return () => {
       stop = true
       clearInterval(id)
+      lastCtrl?.abort()
     }
   }, [])
 
   const goOnboarded = () => {
     setUser(loadUser())
-    setScreen('entrance')
+    setScreen(loadSeries() ? 'entrance' : 'series')
   }
+
+  const onSeriesPicked = () => setScreen('entrance')
 
   const onEntranceDone = (summary: BankEntranceResult) => {
     saveLastResults(summary)
@@ -80,7 +102,6 @@ export default function App() {
   }
 
   const onEntranceSkip = () => {
-    // No results recorded — user lands on dashboard with the warning banner.
     setScreen('dashboard')
   }
 
@@ -106,7 +127,6 @@ export default function App() {
     setScreen('theory')
   }
 
-  // Главный путь обучения — миксует теорию + практику по слабым темам.
   const goAdaptive = () => setScreen('learning')
 
   const goExam = (variantId: number) => {
@@ -114,15 +134,22 @@ export default function App() {
     setScreen('exam')
   }
 
+  const onMockOutcome = (passed: boolean, pct: number) => {
+    setMockOutcome({ mode: passed ? 'success' : 'fail', pct })
+    setScreen('mock-outcome')
+  }
+
   let body: React.ReactNode = null
   if (screen === 'onboarding' || !user) {
     body = <OnboardingScreen onDone={goOnboarded} />
+  } else if (screen === 'series') {
+    body = <ExamSeriesScreen onDone={onSeriesPicked} />
   } else if (screen === 'entrance') {
     body = (
       <EntranceTestScreen
         user={user}
         onDone={onEntranceDone}
-        onBack={() => setScreen(lastResults ? 'dashboard' : 'onboarding')}
+        onBack={() => setScreen(lastResults ? 'dashboard' : 'series')}
         onSkip={onEntranceSkip}
       />
     )
@@ -144,6 +171,8 @@ export default function App() {
         onLogout={onLogout}
         onRetakeEntrance={() => setScreen('entrance')}
         hasEntranceResults={lastResults != null}
+        onFinalStretch={() => setScreen('final-stretch')}
+        onRealExam={() => setScreen('real-exam')}
       />
     )
   } else if (screen === 'theory' && theoryTheme) {
@@ -164,6 +193,7 @@ export default function App() {
         themeCode={practiceTheme}
         onBack={() => setScreen('dashboard')}
         onPickAnotherTheme={() => setScreen('dashboard')}
+        onOpenTheory={goTheory}
       />
     )
   } else if (screen === 'adaptive') {
@@ -171,6 +201,7 @@ export default function App() {
       <AdaptiveSessionScreen
         onBack={() => setScreen('dashboard')}
         onRestart={() => setScreen('adaptive')}
+        onOpenTheory={goTheory}
       />
     )
   } else if (screen === 'learning') {
@@ -178,6 +209,7 @@ export default function App() {
       <LearningPathScreen
         onBack={() => setScreen('dashboard')}
         onRestart={() => setScreen('learning')}
+        onOpenTheory={goTheory}
       />
     )
   } else if (screen === 'exam' && examVariantId != null) {
@@ -185,6 +217,37 @@ export default function App() {
       <ExamVariantScreen
         variantId={examVariantId}
         onBack={() => setScreen('dashboard')}
+        onOutcome={onMockOutcome}
+      />
+    )
+  } else if (screen === 'mock-outcome' && mockOutcome) {
+    body = (
+      <MockOutcomeScreen
+        mode={mockOutcome.mode}
+        pct={mockOutcome.pct}
+        onBack={() => setScreen('dashboard')}
+        onPracticeWeak={() => setScreen('learning')}
+        onScheduleConfirm={() => setScreen('dashboard')}
+        onFinalStretch={() => setScreen('final-stretch')}
+      />
+    )
+  } else if (screen === 'final-stretch') {
+    body = (
+      <FinalStretchScreen
+        onBack={() => setScreen('dashboard')}
+        onReady={() => setScreen('real-exam')}
+        onRealExam={() => setScreen('real-exam')}
+      />
+    )
+  } else if (screen === 'real-exam') {
+    body = (
+      <RealExamPrepScreen
+        onBack={() => setScreen('dashboard')}
+        onExamDone={() => {
+          markExamTaken()
+          setForcePostExam(true)
+          setScreen('dashboard')
+        }}
       />
     )
   } else if (screen === 'wip') {
@@ -205,7 +268,9 @@ export default function App() {
           <div className="brand-mark">Ф</div>
           <div>
             <h1>AI-подготовка к экзамену</h1>
-            <div className="subtitle">Базовый ФСФР · адаптивный тренажёр</div>
+            <div className="subtitle">
+              ФСФР · адаптивный тренажёр
+            </div>
           </div>
         </div>
         <div className="header-right">
@@ -219,7 +284,21 @@ export default function App() {
           <HealthBadge health={health} error={healthErr} />
         </div>
       </header>
-      {body}
+      {/* ErrorBoundary только вокруг тела — хедер должен оставаться видимым,
+          даже если экран упал, чтобы пользователь мог хотя бы нажать «выход». */}
+      <ErrorBoundary>{body}</ErrorBoundary>
+
+      {/* Post-exam modal (24 ч после реального экзамена) */}
+      {(screen === 'dashboard' || forcePostExam) && (
+        <PostExamModal
+          force={forcePostExam}
+          onClose={() => setForcePostExam(false)}
+          onRetry={() => {
+            setForcePostExam(false)
+            setScreen('learning')
+          }}
+        />
+      )}
     </div>
   )
 }

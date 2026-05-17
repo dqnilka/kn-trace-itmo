@@ -47,10 +47,10 @@ class AppContext:
     @classmethod
     def startup(cls, settings: Optional[Settings] = None) -> "AppContext":
         settings = settings or get_settings()
-        if not settings.soy_token:
+        if not settings.effective_api_key:
             raise RuntimeError(
-                "SOY_TOKEN is not set. The service requires a Yandex SOY token "
-                "for LLM generation. Export SOY_TOKEN before starting."
+                "LLM_API_KEY is not set. The service requires an OpenAI-compatible "
+                "API key for LLM generation. Export LLM_API_KEY (or legacy SOY_TOKEN)."
             )
 
         chroma_path = Path(settings.chroma_path)

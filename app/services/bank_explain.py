@@ -20,6 +20,13 @@ from typing import Iterable
 
 from app.api.schemas import ExplainResponse, Source
 from app.core.config import get_settings
+from app.core.llm_budget import (
+    cache_get,
+    cache_key,
+    cache_put,
+    get_budget,
+    truncate_for_budget,
+)
 from app.core.logging import get_logger
 from app.exams.registry import Exam, load_bank
 from app.rag.embeddings import BaseEmbedder
@@ -282,12 +289,36 @@ def explain_bank_task(
         mode = "extractive"
     else:
         prompt = _build_user_prompt(ctx, picked_label)
-        try:
-            explanation = _call_llm(llm_generator, prompt)
+        # Cache: key on (exam, task, picked_label, model). bank_explain is fully
+        # deterministic per task — once generated, replay forever. Saves both
+        # latency (~6 s → instant) and tokens (~3 KB / call).
+        ckey = cache_key(
+            "bank_explain",
+            settings.llm_model,
+            [exam.slug, task_id, picked_label or ""],
+        )
+        cached = (
+            cache_get(Path(settings.llm_cache_dir), ckey)
+            if settings.llm_cache_enabled
+            else None
+        )
+        if cached and isinstance(cached.get("explanation"), str):
+            explanation = cached["explanation"]
             mode = "llm"
-        except Exception as e:  # noqa: BLE001
-            logger.exception("LLM explain failed: %s", e)
-            raise
+            get_budget().record_cache_hit()
+        else:
+            try:
+                explanation = _call_llm(llm_generator, prompt)
+                mode = "llm"
+            except Exception as e:  # noqa: BLE001
+                logger.exception("LLM explain failed: %s", e)
+                raise
+            if settings.llm_cache_enabled:
+                cache_put(
+                    Path(settings.llm_cache_dir),
+                    ckey,
+                    {"explanation": explanation},
+                )
 
     return ExplainResponse(
         task_id=task_id,
@@ -307,6 +338,7 @@ def _call_llm(generator, user_prompt: str) -> str:
     """Минимальный вызов чат-комплитов: тот же клиент, что и у Generator."""
     settings = get_settings()
     client = generator._client  # noqa: SLF001 — pragmatic reuse
+    user_prompt = truncate_for_budget(user_prompt, settings.llm_max_input_chars)
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT_RU},
         {"role": "user", "content": user_prompt},
@@ -322,6 +354,12 @@ def _call_llm(generator, user_prompt: str) -> str:
             model=settings.llm_model,
             max_tokens=settings.llm_max_tokens,
             messages=messages,
+        )
+    usage = getattr(response, "usage", None)
+    if usage is not None:
+        get_budget().record(
+            input_tokens=getattr(usage, "prompt_tokens", 0) or 0,
+            output_tokens=getattr(usage, "completion_tokens", 0) or 0,
         )
     return (response.choices[0].message.content or "").strip()
 

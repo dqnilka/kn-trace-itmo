@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import HTMLResponse
 
 from app.api.schemas import (
+    BudgetSnapshot,
     ConceptUpdateOut,
     DueConcept,
     EventRequest,
@@ -26,6 +27,7 @@ from app.api.schemas import (
     ThemeArticleSection,
     ThemeConcept,
 )
+from app.core.llm_budget import get_budget
 from app.core.logging import get_logger
 from app.deps import (
     AppContext,
@@ -486,6 +488,7 @@ def _health_payload(ctx: AppContext) -> HealthResponse:
         status="ok" if (ctx.ready and vs_ready and any_graph) else "degraded",
         graph_loaded=any_graph,
         vector_store_ready=vs_ready,
-        llm_configured=bool(ctx.settings.soy_token),
+        llm_configured=bool(ctx.settings.effective_api_key),
         exams=exam_blocks,
+        budget=BudgetSnapshot(**get_budget().snapshot()),
     )

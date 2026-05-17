@@ -1,0 +1,37 @@
+# Local single-port gateway: maps :8080 → Vite (frontend) + FastAPI (backend).
+# This is the SAME shape as Yandex Cloud API Gateway will use in prod, so the
+# frontend doesn't need to know the backend URL — it always calls relative
+# `/api/...` and `/healthz`.
+#
+# Usage:
+#   1. Start backend:   uvicorn app.main:app --port 8000
+#   2. Start frontend:  cd frontend && npm run dev   (binds :5173)
+#   3. Start gateway:   caddy run --config Caddyfile
+#   4. Open:            http://localhost:8080
+#
+# Install caddy: https://caddyserver.com/download (single binary, no deps)
+# Windows:        winget install CaddyServer.Caddy
+# macOS:          brew install caddy
+
+:8080 {
+    encode gzip
+
+    # Backend API: /api/* and /healthz proxy to FastAPI on :8000.
+    handle_path /api/* {
+        rewrite * /api{path}
+        reverse_proxy localhost:8000 {
+            transport http {
+                read_timeout 90s
+            }
+        }
+    }
+    handle /healthz {
+        reverse_proxy localhost:8000
+    }
+
+    # Static frontend (dev mode via Vite). In prod replace with `root` + `file_server`
+    # pointing at frontend/dist after `npm run build`.
+    handle {
+        reverse_proxy localhost:5173
+    }
+}
