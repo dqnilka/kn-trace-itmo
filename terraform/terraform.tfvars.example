@@ -1,0 +1,28 @@
+# Скопируй в terraform.tfvars и заполни. terraform.tfvars в .gitignore.
+#
+# Где взять значения:
+#   cloud_id, folder_id  → console.cloud.yandex.ru → верхняя панель «Облако» + «Каталог»
+#   sa_key_file          → см. SETUP.md шаг 2 — путь к JSON ключу
+#   llm_api_key          → у выбранного LLM-провайдера (OpenAI/OpenRouter/DeepSeek)
+#   bucket_name          → глобально-уникальное имя, например "kt-frontend-yourname"
+
+cloud_id    = "b1g..."
+folder_id   = "b1g..."
+sa_key_file = "./kt-deployer-key.json"
+
+# --- LLM ---
+llm_api_key  = "sk-..."
+llm_base_url = "https://api.openai.com/v1"
+llm_model    = "gpt-4o-mini"
+# llm_base_url = "https://api.deepseek.com/v1"      # дёшево
+# llm_model    = "deepseek-chat"
+
+# --- Frontend bucket ---
+bucket_name = "kt-frontend-CHANGE-ME"
+
+# --- Tuning (опционально) ---
+# container_memory_mb   = 2048
+# container_cores       = 1
+# container_concurrency = 4
+# rate_limit_per_min    = 30
+# skip_llm              = false  # true — для smoke-проверки инфры без трат

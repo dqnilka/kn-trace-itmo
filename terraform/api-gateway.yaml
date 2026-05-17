@@ -1,0 +1,75 @@
+# API Gateway spec для Yandex Cloud.
+# Подставляется через terraform `templatefile()`:
+#   ${container_id}       — Serverless Container ID
+#   ${service_account_id} — SA, от имени которого вызывается container
+#   ${bucket_name}        — Object Storage bucket с фронт-статикой
+#
+# Структура:
+#   /healthz                    → container
+#   /api/v1/{rest+}             → container
+#   /                           → bucket/index.html
+#   /assets/{file+}, /favicon, /robots.txt и т.д. → bucket
+#   /* (SPA-роуты как /admin)   → bucket/index.html (SPA fallback)
+
+openapi: "3.0.0"
+info:
+  title: kt-app gateway
+  version: "1.0.0"
+
+paths:
+  # ---------- Backend ----------
+  /healthz:
+    get:
+      x-yc-apigateway-integration:
+        type: serverless_containers
+        container_id: ${container_id}
+        service_account_id: ${service_account_id}
+
+  /api/v1/{rest+}:
+    x-yc-apigateway-any-method:
+      x-yc-apigateway-integration:
+        type: serverless_containers
+        container_id: ${container_id}
+        service_account_id: ${service_account_id}
+
+  # ---------- Frontend statics ----------
+  /:
+    get:
+      x-yc-apigateway-integration:
+        type: object_storage
+        bucket: ${bucket_name}
+        object: index.html
+        presigned_redirect: false
+        service_account_id: ${service_account_id}
+
+  # Vite кладёт всё в /assets/index-*.{js,css}
+  /assets/{file+}:
+    get:
+      parameters:
+        - name: file
+          in: path
+          required: true
+          schema:
+            type: string
+      x-yc-apigateway-integration:
+        type: object_storage
+        bucket: ${bucket_name}
+        object: "assets/{file}"
+        presigned_redirect: false
+        service_account_id: ${service_account_id}
+
+  # Любые другие пути (SPA: /admin, /onboarding, etc) — SPA fallback на index.html
+  /{rest+}:
+    get:
+      parameters:
+        - name: rest
+          in: path
+          required: true
+          schema:
+            type: string
+      x-yc-apigateway-integration:
+        type: object_storage
+        bucket: ${bucket_name}
+        object: index.html
+        presigned_redirect: false
+        service_account_id: ${service_account_id}

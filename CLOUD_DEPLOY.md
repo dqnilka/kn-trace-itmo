@@ -2,6 +2,19 @@
 
 Этот документ — пошаговый рецепт «как сделать так, чтобы по ссылке открывалось у всех». Сервис в любой точке мира; LLM-провайдер OpenAI-совместимый (любой); инфра — Yandex Cloud (квота 16к ₽/мес покрывает с большим запасом).
 
+> **Готовые артефакты для deploy:**
+>
+> | Файл | Что |
+> |---|---|
+> | [`Dockerfile.prod`](Dockerfile.prod) | Production image с baked Chroma + HF cache + bank/graph |
+> | [`terraform/`](terraform/) | Полная инфра одной командой `terraform apply` |
+> | [`terraform/SETUP.md`](terraform/SETUP.md) | Пошаговая инструкция (читай это первым) |
+> | [`scripts/deploy.sh`](scripts/deploy.sh) | One-shot build + push + upload + smoke |
+> | [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) | CI/CD на push в master |
+> | [`Caddyfile`](Caddyfile) | Локальный API gateway (для проверки prod-shape без YC) |
+>
+> **TL;DR**: см. [`terraform/SETUP.md`](terraform/SETUP.md). Этот файл — справка по архитектуре.
+
 ## Архитектура
 
 ```

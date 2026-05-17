@@ -155,6 +155,21 @@ class Generator:
                 "in your shell before launching the service. See .env.example for "
                 "supported providers (OpenAI / OpenRouter / DeepSeek / YandexGPT)."
             )
+        # Защита от типичной ошибки: в .env вместо настоящего ключа оставлен
+        # русскоязычный плейсхолдер ("по хорошему вставить токен..."). httpx
+        # позже всё равно упадёт на header.encode("ascii"), но к тому моменту
+        # уже прогружены модели и сожжено пара минут. Ловим сразу.
+        if not key.isascii():
+            raise RuntimeError(
+                "LLM_API_KEY contains non-ASCII characters — похоже на "
+                "placeholder вместо реального ключа. Проверьте .env, замените "
+                "на настоящий ключ (sk-...) или поставьте SKIP_LLM=true для "
+                "запуска без LLM (extractive fallback)."
+            )
+        if not settings.llm_base_url.isascii():
+            raise RuntimeError(
+                "LLM_BASE_URL contains non-ASCII characters. Проверьте .env."
+            )
         return cls(
             api_key=key,
             base_url=settings.llm_base_url,

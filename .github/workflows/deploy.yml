@@ -1,0 +1,126 @@
+# CI/CD: при push в master или ручном trigger — build + push image + sync фронт.
+#
+# Repo secrets, которые нужны (Settings → Secrets and variables → Actions):
+#
+#   YC_SA_KEY_FILE         — содержимое JSON-ключа deployer SA (целиком, multiline)
+#   YC_CLOUD_ID            — например "b1g..."
+#   YC_FOLDER_ID           — например "b1g..."
+#   YC_CR_ID               — Container Registry ID (terraform output)
+#   YC_CONTAINER_ID        — Serverless Container ID (terraform output)
+#   YC_BUCKET              — имя bucket с фронтом
+#   YC_BUCKET_AK           — Access Key (terraform output bucket_access_key)
+#   YC_BUCKET_SK           — Secret Key (terraform output bucket_secret_key)
+#
+# Первичный deploy всё равно через `terraform apply` локально — этот workflow
+# только пересобирает образ и фронт после terraform-инфры.
+
+name: Deploy to Yandex Cloud
+
+on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - "terraform/**"
+  workflow_dispatch:
+    inputs:
+      backend:
+        type: boolean
+        default: true
+      frontend:
+        type: boolean
+        default: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yc CLI
+        run: |
+          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash
+          echo "$HOME/yandex-cloud/bin" >> "$GITHUB_PATH"
+
+      - name: Configure yc auth (service-account JSON)
+        run: |
+          echo '${{ secrets.YC_SA_KEY_FILE }}' > /tmp/sa-key.json
+          yc config profile create ci || yc config profile activate ci
+          yc config set service-account-key /tmp/sa-key.json
+          yc config set cloud-id  '${{ secrets.YC_CLOUD_ID }}'
+          yc config set folder-id '${{ secrets.YC_FOLDER_ID }}'
+
+      # ---------- Backend ----------
+      - name: Docker login to Yandex Container Registry
+        if: ${{ inputs.backend == true || github.event_name == 'push' }}
+        run: yc container registry configure-docker
+
+      - name: Set up Docker Buildx
+        if: ${{ inputs.backend == true || github.event_name == 'push' }}
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build & push backend image
+        if: ${{ inputs.backend == true || github.event_name == 'push' }}
+        env:
+          IMAGE_URL: cr.yandex/${{ secrets.YC_CR_ID }}/kt-app:${{ github.sha }}
+          IMAGE_URL_LATEST: cr.yandex/${{ secrets.YC_CR_ID }}/kt-app:latest
+        run: |
+          docker buildx build \
+            -f Dockerfile.prod \
+            -t "$IMAGE_URL" -t "$IMAGE_URL_LATEST" \
+            --push \
+            .
+
+      - name: Deploy new container revision
+        if: ${{ inputs.backend == true || github.event_name == 'push' }}
+        env:
+          IMAGE_URL: cr.yandex/${{ secrets.YC_CR_ID }}/kt-app:${{ github.sha }}
+        run: |
+          yc serverless container revision deploy \
+            --container-id '${{ secrets.YC_CONTAINER_ID }}' \
+            --image "$IMAGE_URL" \
+            --memory 2GB --cores 1 \
+            --execution-timeout 90s --concurrency 4
+
+      # ---------- Frontend ----------
+      - name: Setup Node.js
+        if: ${{ inputs.frontend == true || github.event_name == 'push' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: "frontend/package-lock.json"
+
+      - name: Build frontend
+        if: ${{ inputs.frontend == true || github.event_name == 'push' }}
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Upload frontend to Object Storage
+        if: ${{ inputs.frontend == true || github.event_name == 'push' }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.YC_BUCKET_AK }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.YC_BUCKET_SK }}
+        run: |
+          aws --endpoint-url=https://storage.yandexcloud.net \
+              s3 sync frontend/dist/ "s3://${{ secrets.YC_BUCKET }}/" \
+              --delete --acl public-read
+
+      # ---------- Smoke ----------
+      - name: Wait for revision & smoke /healthz
+        run: |
+          # Container takes ~10 sec to swap revisions
+          sleep 15
+          # Получаем публичный URL gateway. Можно хранить как secret или вычислять.
+          # Здесь — через `yc serverless api-gateway list`.
+          GW_URL=$(yc serverless api-gateway list --format json | jq -r '.[] | select(.name=="kt-app-gw") | .domain')
+          if [ -z "$GW_URL" ]; then
+            echo "::warning ::API Gateway не найден"
+            exit 0
+          fi
+          curl -fsS "https://$GW_URL/healthz" | jq '{status, llm_configured}'

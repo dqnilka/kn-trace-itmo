@@ -264,8 +264,18 @@ export default function DashboardScreen({
             'Шкала 0-100, где ≥80 — условно сдашь экзамен. Точность растёт с числом ответов.'
           }
           value={
-            overall.confidence === 'ok' && bktMastery?.overall != null
-              ? knowledgeLevel(bktMastery.overall)
+            // Если confidence='ok' — берём server-side BKT, при его отсутствии
+            // (новый user_id / упавший /event) fallback на локальный pct.
+            // Раньше требовалось ОБА условия — после моего ротайшна user_id
+            // на crypto-random server-side mastery обнулилась и поле показывало
+            // «?» при 35+ накопленных локальных ответах. Локальный fallback
+            // решает эту тиринг-проблему.
+            overall.confidence === 'ok'
+              ? bktMastery?.overall != null
+                ? knowledgeLevel(bktMastery.overall)
+                : overall.pct != null
+                  ? knowledgeLevel(overall.pct)
+                  : null
               : null
           }
           confidence={overall.confidence}
@@ -285,11 +295,17 @@ export default function DashboardScreen({
             'Сколько тем уже было задействовано — хотя бы один ответ. ' +
             'Хорошее покрытие важно для финального уровня знаний.'
           }
-          value={touchedThemes}
+          // Пока bank не загрузился, totalThemes=0 → не показываем «X из 0».
+          // Показываем placeholder «загрузка…» и серое кольцо до резолва /bank.
+          value={totalThemes > 0 ? touchedThemes : null}
           confidence={totalThemes > 0 ? 'ok' : 'empty'}
           maxValue={totalThemes}
           color="#0ea5e9"
-          sub={`${touchedThemes} из ${totalThemes}`}
+          sub={
+            totalThemes > 0
+              ? `${touchedThemes} из ${totalThemes}`
+              : 'загружаем структуру курса…'
+          }
         />
         <StatCard
           label="Пробные варианты"

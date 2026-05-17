@@ -1,0 +1,112 @@
+# syntax=docker/dockerfile:1.6
+#
+# Production-образ для Yandex Cloud Serverless Container.
+#
+# Отличия от dev-Dockerfile:
+#   1. Запекаем готовый chroma vector store (data/chroma) — Serverless Container
+#      не имеет persistent FS, делать ingest при старте дорого (5-7 минут).
+#   2. Запекаем HF cache (E5 + cross-encoder) — иначе первый старт качает
+#      ~600 MB моделей, 30+ сек cold start.
+#   3. Запекаем data/exams (bank.json / graph.json / theory.md) read-only.
+#   4. Не используем uv в runtime — итоговый venv статичен.
+#
+# Размер итогового образа: ~3.5 GB (CPU torch + модели + chroma + код).
+# Cold start после bake: ~2-4 сек (только подъём процесса).
+
+# =============================================================================
+# Stage 1: builder — Python venv + Python deps + предзагрузка HF моделей
+# =============================================================================
+
+FROM python:3.11-slim AS builder
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    UV_LINK_MODE=copy \
+    UV_COMPILE_BYTECODE=1 \
+    HF_HOME=/opt/hf_cache
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir uv==0.11.7
+
+WORKDIR /app
+
+COPY pyproject.toml README.md ./
+
+# Pre-install CPU-only torch (avoid pulling nvidia-* — arm64-incompatible
+# and ~3 GB extra)
+RUN uv venv /app/.venv && \
+    . /app/.venv/bin/activate && \
+    uv pip install --no-cache --index-url https://download.pytorch.org/whl/cpu \
+        torch==2.4.1 && \
+    uv pip install --no-cache -r pyproject.toml
+
+# Pre-download HF models into /opt/hf_cache so runtime doesn't pull them.
+# We only need to "touch" the SentenceTransformer + CrossEncoder constructors.
+RUN . /app/.venv/bin/activate && \
+    python -c "\
+from sentence_transformers import SentenceTransformer, CrossEncoder; \
+SentenceTransformer('intfloat/multilingual-e5-small'); \
+CrossEncoder('cross-encoder/mmarco-mMiniLMv2-L12-H384-v1'); \
+print('HF models cached')"
+
+# Source code
+COPY app ./app
+COPY scripts ./scripts
+COPY vendor ./vendor
+
+# =============================================================================
+# Stage 2: runtime — slim image with everything baked
+# =============================================================================
+
+FROM python:3.11-slim AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/app/.venv/bin:$PATH" \
+    HF_HOME=/opt/hf_cache \
+    TRANSFORMERS_OFFLINE=1 \
+    OMP_NUM_THREADS=2 \
+    TOKENIZERS_PARALLELISM=false \
+    # --- runtime paths inside container (override via env if needed) ---
+    EXAMS_DIR=/app/exams \
+    CHROMA_PATH=/app/data/chroma \
+    DATA_DIR=/app/data \
+    LLM_CACHE_DIR=/app/data/llm_cache
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Скопировать venv и код из builder
+COPY --from=builder /app/.venv /app/.venv
+COPY --from=builder /app/app /app/app
+COPY --from=builder /app/scripts /app/scripts
+COPY --from=builder /app/vendor /app/vendor
+COPY --from=builder /opt/hf_cache /opt/hf_cache
+COPY pyproject.toml README.md ./
+
+# Bake chroma vector store (предположение: уже запущен `python -m app.rag.ingest`
+# локально и data/chroma/ содержит коллекции). Размер ≈30 MB.
+COPY data/chroma /app/data/chroma
+
+# Bake exam manifests + bank + graph + theme_sections.
+# events.jsonl и users/ остаются пустыми — они пишутся в runtime.
+# В Serverless Container эти записи не персистентны (read-only FS),
+# но для MVP-демо это приемлемо: mastery от bkt теряется при cold-start,
+# fronend локальная mastery сохраняется в localStorage пользователя.
+COPY data/exams /app/exams
+
+# Создать пустые директории для рантайма (cache + run logs).
+RUN mkdir -p /app/data/llm_cache /app/data/chroma_writeback
+
+EXPOSE 8000
+
+# Serverless Container ожидает что процесс слушает $PORT (по умолчанию 8080).
+# Маппим $PORT на uvicorn если задан, иначе 8000.
+CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
