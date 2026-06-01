@@ -9,11 +9,12 @@ import pytest
 
 from app.graph.knowledge_graph import KnowledgeGraph
 from app.graph.loader import (
-    LoadedConceptDictionary,
-    LoadedGraph,
     load_concept_dictionary,
     load_graph,
 )
+
+LoadedGraph = dict
+LoadedConceptDictionary = dict
 
 
 # ----------------------------------------------------------------

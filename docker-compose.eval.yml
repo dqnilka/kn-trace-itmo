@@ -1,0 +1,50 @@
+# Evaluation runner — generates quality report as .md
+#
+# Usage:
+#   docker compose -f docker-compose.eval.yml up eval
+#
+# With LLM-as-judge (optional, requires API key):
+#   LLM_API_KEY=your-key LLM_BASE_URL=https://api.openai.com/v1 docker compose -f docker-compose.eval.yml run eval --with-llm
+#
+# Yandex Cloud example:
+#   LLM_API_KEY=your-yandex-token LLM_BASE_URL=https://llm.api.cloud.yandex.net/foundationModels/v1 \
+#     LLM_MODEL=yandexgpt-lite docker compose -f docker-compose.eval.yml run eval --with-llm
+
+services:
+  eval:
+    build:
+      context: .
+      dockerfile: Dockerfile.eval
+    image: akt-eval:latest
+    container_name: akt-eval
+    environment:
+      - EXAMS_DIR=/app/evaluation/fixtures
+      - HF_HOME=/root/.cache/huggingface
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ./evaluation_report.md:/app/evaluation_report.md
+      - hf_cache_eval:/root/.cache/huggingface
+    command: ["--output", "/app/evaluation_report.md"]
+
+  eval-with-llm:
+    build:
+      context: .
+      dockerfile: Dockerfile.eval
+    image: akt-eval:latest
+    container_name: akt-eval-llm
+    profiles: ["llm"]
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - EXAMS_DIR=/app/evaluation/fixtures
+      - HF_HOME=/root/.cache/huggingface
+    volumes:
+      - ./evaluation_report.md:/app/evaluation_report.md
+      - hf_cache_eval:/root/.cache/huggingface
+    command: ["--output", "/app/evaluation_report.md", "--with-llm"]
+
+volumes:
+  hf_cache_eval:

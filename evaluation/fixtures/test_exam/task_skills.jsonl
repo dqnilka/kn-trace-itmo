@@ -1,0 +1,90 @@
+{"task_id": 1, "concept_id": "co:finansovyj-rynok", "concept_term": "Финансовый рынок", "score": 0.9234}
+{"task_id": 1, "concept_id": "co:birzhevoj-rynok", "concept_term": "Биржевой рынок", "score": 0.8712}
+{"task_id": 1, "concept_id": "co:broker", "concept_term": "Брокер", "score": 0.7451}
+{"task_id": 2, "concept_id": "co:finansovyj-rynok", "concept_term": "Финансовый рынок", "score": 0.9102}
+{"task_id": 2, "concept_id": "co:birzhevoj-rynok", "concept_term": "Биржевой рынок", "score": 0.8543}
+{"task_id": 2, "concept_id": "co:broker", "concept_term": "Брокер", "score": 0.6897}
+{"task_id": 3, "concept_id": "co:birzhevoj-rynok", "concept_term": "Биржевой рынок", "score": 0.8976}
+{"task_id": 3, "concept_id": "co:finansovyj-rynok", "concept_term": "Финансовый рынок", "score": 0.8431}
+{"task_id": 3, "concept_id": "co:broker", "concept_term": "Брокер", "score": 0.7124}
+{"task_id": 4, "concept_id": "co:broker", "concept_term": "Брокер", "score": 0.9158}
+{"task_id": 4, "concept_id": "co:birzhevoj-rynok", "concept_term": "Биржевой рынок", "score": 0.8267}
+{"task_id": 4, "concept_id": "co:finansovyj-rynok", "concept_term": "Финансовый рынок", "score": 0.7689}
+{"task_id": 5, "concept_id": "co:finansovyj-rynok", "concept_term": "Финансовый рынок", "score": 0.8891}
+{"task_id": 5, "concept_id": "co:broker", "concept_term": "Брокер", "score": 0.7934}
+{"task_id": 5, "concept_id": "co:birzhevoj-rynok", "concept_term": "Биржевой рынок", "score": 0.6542}
+{"task_id": 6, "concept_id": "co:finansovyj-rynok", "concept_term": "Финансовый рынок", "score": 0.9347}
+{"task_id": 6, "concept_id": "co:birzhevoj-rynok", "concept_term": "Биржевой рынок", "score": 0.8125}
+{"task_id": 6, "concept_id": "co:broker", "concept_term": "Брокер", "score": 0.5973}
+{"task_id": 7, "concept_id": "co:czennaya-bumaga", "concept_term": "Ценная бумага", "score": 0.9412}
+{"task_id": 7, "concept_id": "co:obligaciya", "concept_term": "Облигация", "score": 0.8234}
+{"task_id": 7, "concept_id": "co:akciya", "concept_term": "Акция", "score": 0.6789}
+{"task_id": 8, "concept_id": "co:akciya", "concept_term": "Акция", "score": 0.9187}
+{"task_id": 8, "concept_id": "co:czennaya-bumaga", "concept_term": "Ценная бумага", "score": 0.8563}
+{"task_id": 8, "concept_id": "co:emissiya", "concept_term": "Эмиссия ценных бумаг", "score": 0.7342}
+{"task_id": 9, "concept_id": "co:obligaciya", "concept_term": "Облигация", "score": 0.9265}
+{"task_id": 9, "concept_id": "co:czennaya-bumaga", "concept_term": "Ценная бумага", "score": 0.8478}
+{"task_id": 9, "concept_id": "co:akciya", "concept_term": "Акция", "score": 0.7156}
+{"task_id": 10, "concept_id": "co:emissiya", "concept_term": "Эмиссия ценных бумаг", "score": 0.9034}
+{"task_id": 10, "concept_id": "co:czennaya-bumaga", "concept_term": "Ценная бумага", "score": 0.8391}
+{"task_id": 10, "concept_id": "co:obligaciya", "concept_term": "Облигация", "score": 0.6523}
+{"task_id": 11, "concept_id": "co:czennaya-bumaga", "concept_term": "Ценная бумага", "score": 0.9378}
+{"task_id": 11, "concept_id": "co:emissiya", "concept_term": "Эмиссия ценных бумаг", "score": 0.8645}
+{"task_id": 11, "concept_id": "co:obligaciya", "concept_term": "Облигация", "score": 0.5891}
+{"task_id": 12, "concept_id": "co:akciya", "concept_term": "Акция", "score": 0.9156}
+{"task_id": 12, "concept_id": "co:obligaciya", "concept_term": "Облигация", "score": 0.8123}
+{"task_id": 12, "concept_id": "co:emissiya", "concept_term": "Эмиссия ценных бумаг", "score": 0.6734}
+{"task_id": 13, "concept_id": "co:proizvodnyj-instrument", "concept_term": "Производный инструмент", "score": 0.9487}
+{"task_id": 13, "concept_id": "co:fyuchers", "concept_term": "Фьючерс", "score": 0.8345}
+{"task_id": 13, "concept_id": "co:opcion", "concept_term": "Опцион", "score": 0.6912}
+{"task_id": 14, "concept_id": "co:fyuchers", "concept_term": "Фьючерс", "score": 0.9263}
+{"task_id": 14, "concept_id": "co:proizvodnyj-instrument", "concept_term": "Производный инструмент", "score": 0.8678}
+{"task_id": 14, "concept_id": "co:opcion", "concept_term": "Опцион", "score": 0.7456}
+{"task_id": 15, "concept_id": "co:opcion", "concept_term": "Опцион", "score": 0.9312}
+{"task_id": 15, "concept_id": "co:proizvodnyj-instrument", "concept_term": "Производный инструмент", "score": 0.8543}
+{"task_id": 15, "concept_id": "co:fyuchers", "concept_term": "Фьючерс", "score": 0.7234}
+{"task_id": 16, "concept_id": "co:proizvodnyj-instrument", "concept_term": "Производный инструмент", "score": 0.9178}
+{"task_id": 16, "concept_id": "co:fyuchers", "concept_term": "Фьючерс", "score": 0.8123}
+{"task_id": 16, "concept_id": "co:opcion", "concept_term": "Опцион", "score": 0.5867}
+{"task_id": 17, "concept_id": "co:fyuchers", "concept_term": "Фьючерс", "score": 0.9456}
+{"task_id": 17, "concept_id": "co:opcion", "concept_term": "Опцион", "score": 0.8234}
+{"task_id": 17, "concept_id": "co:proizvodnyj-instrument", "concept_term": "Производный инструмент", "score": 0.6512}
+{"task_id": 18, "concept_id": "co:opcion", "concept_term": "Опцион", "score": 0.9089}
+{"task_id": 18, "concept_id": "co:proizvodnyj-instrument", "concept_term": "Производный инструмент", "score": 0.8765}
+{"task_id": 18, "concept_id": "co:fyuchers", "concept_term": "Фьючерс", "score": 0.5432}
+{"task_id": 19, "concept_id": "co:diskontirovanie", "concept_term": "Дисконтирование", "score": 0.9367}
+{"task_id": 19, "concept_id": "co:procentnaya-stavka", "concept_term": "Процентная ставка", "score": 0.8456}
+{"task_id": 19, "concept_id": "co:finansovyj-rynok", "concept_term": "Финансовый рынок", "score": 0.5234}
+{"task_id": 20, "concept_id": "co:procentnaya-stavka", "concept_term": "Процентная ставка", "score": 0.9234}
+{"task_id": 20, "concept_id": "co:diskontirovanie", "concept_term": "Дисконтирование", "score": 0.8678}
+{"task_id": 20, "concept_id": "co:obligaciya", "concept_term": "Облигация", "score": 0.5123}
+{"task_id": 21, "concept_id": "co:diskontirovanie", "concept_term": "Дисконтирование", "score": 0.9189}
+{"task_id": 21, "concept_id": "co:procentnaya-stavka", "concept_term": "Процентная ставка", "score": 0.8234}
+{"task_id": 21, "concept_id": "co:birzhevoj-rynok", "concept_term": "Биржевой рынок", "score": 0.5678}
+{"task_id": 22, "concept_id": "co:procentnaya-stavka", "concept_term": "Процентная ставка", "score": 0.9412}
+{"task_id": 22, "concept_id": "co:diskontirovanie", "concept_term": "Дисконтирование", "score": 0.8567}
+{"task_id": 22, "concept_id": "co:akciya", "concept_term": "Акция", "score": 0.5891}
+{"task_id": 23, "concept_id": "co:diskontirovanie", "concept_term": "Дисконтирование", "score": 0.9045}
+{"task_id": 23, "concept_id": "co:procentnaya-stavka", "concept_term": "Процентная ставка", "score": 0.8378}
+{"task_id": 23, "concept_id": "co:fyuchers", "concept_term": "Фьючерс", "score": 0.5345}
+{"task_id": 24, "concept_id": "co:procentnaya-stavka", "concept_term": "Процентная ставка", "score": 0.9267}
+{"task_id": 24, "concept_id": "co:diskontirovanie", "concept_term": "Дисконтирование", "score": 0.8789}
+{"task_id": 24, "concept_id": "co:emissiya", "concept_term": "Эмиссия ценных бумаг", "score": 0.5456}
+{"task_id": 25, "concept_id": "co:risk-finansovyj", "concept_term": "Финансовый риск", "score": 0.9378}
+{"task_id": 25, "concept_id": "co:diversifikaciya", "concept_term": "Диверсификация", "score": 0.8456}
+{"task_id": 25, "concept_id": "co:portfel-investicij", "concept_term": "Портфель инвестиций", "score": 0.7234}
+{"task_id": 26, "concept_id": "co:diversifikaciya", "concept_term": "Диверсификация", "score": 0.9234}
+{"task_id": 26, "concept_id": "co:risk-finansovyj", "concept_term": "Финансовый риск", "score": 0.8567}
+{"task_id": 26, "concept_id": "co:portfel-investicij", "concept_term": "Портфель инвестиций", "score": 0.6789}
+{"task_id": 27, "concept_id": "co:portfel-investicij", "concept_term": "Портфель инвестиций", "score": 0.9156}
+{"task_id": 27, "concept_id": "co:risk-finansovyj", "concept_term": "Финансовый риск", "score": 0.8345}
+{"task_id": 27, "concept_id": "co:diversifikaciya", "concept_term": "Диверсификация", "score": 0.7123}
+{"task_id": 28, "concept_id": "co:risk-finansovyj", "concept_term": "Финансовый риск", "score": 0.9489}
+{"task_id": 28, "concept_id": "co:portfel-investicij", "concept_term": "Портфель инвестиций", "score": 0.8765}
+{"task_id": 28, "concept_id": "co:diversifikaciya", "concept_term": "Диверсификация", "score": 0.5934}
+{"task_id": 29, "concept_id": "co:diversifikaciya", "concept_term": "Диверсификация", "score": 0.9312}
+{"task_id": 29, "concept_id": "co:portfel-investicij", "concept_term": "Портфель инвестиций", "score": 0.8234}
+{"task_id": 29, "concept_id": "co:risk-finansovyj", "concept_term": "Финансовый риск", "score": 0.6567}
+{"task_id": 30, "concept_id": "co:portfel-investicij", "concept_term": "Портфель инвестиций", "score": 0.9245}
+{"task_id": 30, "concept_id": "co:diversifikaciya", "concept_term": "Диверсификация", "score": 0.8678}
+{"task_id": 30, "concept_id": "co:risk-finansovyj", "concept_term": "Финансовый риск", "score": 0.5345}

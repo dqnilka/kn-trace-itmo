@@ -1,0 +1,62 @@
+# syntax=docker/dockerfile:1.6
+
+# Evaluation image — runs quality metrics and outputs .md report.
+# Usage:
+#   docker build -f Dockerfile.eval -t akt-eval .
+#   docker run -v $(pwd)/evaluation_report.md:/app/evaluation_report.md akt-eval
+#   # With LLM-judge:
+#   docker run -e LLM_API_KEY=xxx -v $(pwd)/evaluation_report.md:/app/evaluation_report.md akt-eval --with-llm
+
+FROM python:3.11-slim AS builder
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    UV_LINK_MODE=copy \
+    UV_COMPILE_BYTECODE=1
+
+RUN pip install --no-cache-dir uv==0.11.7
+
+WORKDIR /app
+
+COPY pyproject.toml README.md ./
+
+RUN uv venv /app/.venv && \
+    . /app/.venv/bin/activate && \
+    uv pip install --no-cache --index-url https://download.pytorch.org/whl/cpu \
+        torch==2.4.1 && \
+    uv pip install --no-cache -r pyproject.toml
+
+COPY app ./app
+COPY evaluation ./evaluation
+COPY scripts ./scripts
+COPY vendor ./vendor
+
+FROM python:3.11-slim AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/app/.venv/bin:$PATH" \
+    HF_HOME=/root/.cache/huggingface \
+    TRANSFORMERS_OFFLINE=0 \
+    OMP_NUM_THREADS=2 \
+    TOKENIZERS_PARALLELISM=false
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY --from=builder /app/.venv /app/.venv
+COPY --from=builder /app/app /app/app
+COPY --from=builder /app/evaluation /app/evaluation
+COPY --from=builder /app/scripts /app/scripts
+COPY --from=builder /app/vendor /app/vendor
+COPY pyproject.toml README.md ./
+
+RUN mkdir -p /app/data
+
+ENTRYPOINT ["python", "-m", "evaluation"]
+CMD ["--output", "/app/evaluation_report.md"]
