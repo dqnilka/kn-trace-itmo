@@ -191,7 +191,7 @@ export default function PracticeScreen({
               Сменить тему
             </button>
             <button className="pill pill-ghost" onClick={onBack}>
-              На дашборд
+              На главную
             </button>
           </div>
         </div>

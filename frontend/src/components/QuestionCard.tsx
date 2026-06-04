@@ -106,16 +106,18 @@ export default function QuestionCard({
     <article className="qcard">
       <header className="qcard-head">
         <div className="qcard-progress">
-          вопрос {index + 1} из {total}
-          {task.task_number ? ` · ${task.task_number}` : ''}
+          Вопрос {index + 1} из {total}
+          {isAdmin && task.task_number ? (
+            <span className="qcard-code"> · {task.task_number}</span>
+          ) : null}
         </div>
         <div className="qcard-meta">
-          {chapterName && <span className="chip chip-soft">{chapterName}</span>}
           {themeName && <span className="chip chip-muted">{themeName}</span>}
           {task.difficulty != null && (
-            <span className={`chip chip-diff diff-${task.difficulty}`}>
-              {task.difficulty === 1 ? 'легко' : 'средне'}
-            </span>
+            <span
+              className={`diff-dot diff-${task.difficulty}`}
+              title={task.difficulty === 1 ? 'легко' : 'средне'}
+            />
           )}
         </div>
       </header>

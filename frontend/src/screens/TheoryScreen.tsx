@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import SafeMarkdown from '../components/SafeMarkdown'
+import { TheorySkeleton } from '../components/ui/Skeleton'
 import { api } from '../api'
 import { ACTIVE_EXAM_SLUG } from '../state/bank'
 import { loadMastery, themeScore } from '../state/mastery'
@@ -13,7 +14,7 @@ import type { ThemeArticleResponse, ThemeConcept } from '../types'
  * учебника как «источник истины».
  *
  * Внизу CTA «Решать задачи →» — ведёт в обычную практику по теме. Кнопка
- * «← к темам» возвращает на дашборд.
+ * «← к темам» возвращает на главную.
  */
 export default function TheoryScreen({
   themeCode,
@@ -76,14 +77,13 @@ export default function TheoryScreen({
             ← к темам
           </button>
         </div>
-        <div className="screen-body narrow centered">
-          <h1 className="screen-title">Готовим теорию…</h1>
-          <div className="theory-loading">
-            <span className="theory-loading-dot" />
-            <span className="theory-loading-dot" />
-            <span className="theory-loading-dot" />
-            <span className="meta">AI собирает выжимку из учебника. ~5 секунд при первом обращении.</span>
+        <div className="screen-body narrow">
+          <div className="meta" style={{ marginBottom: 14 }}>
+            ✍️ AI составляет разбор под задания темы — обычно ~5 секунд…
           </div>
+          <article className="theory-article">
+            <TheorySkeleton />
+          </article>
         </div>
       </div>
     )

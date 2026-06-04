@@ -1,104 +1,76 @@
 import { useState } from 'react'
-import { saveUser, userIdFromEmail } from '../state/user'
+import Logo from '../components/Logo'
 
-export default function OnboardingScreen({
-  onDone,
-}: {
-  onDone: () => void
-}) {
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [err, setErr] = useState<string | null>(null)
-  const [mode, setMode] = useState<'login' | 'signup'>('signup')
+/**
+ * Короткий онбординг (3 шага) после регистрации — мягкий вход перед входным
+ * тестом. Без сбора данных: только знакомство с продуктом и как он работает.
+ */
+const STEPS = [
+  {
+    icon: '👋',
+    title: 'Добро пожаловать в FinUplift',
+    text: 'Адаптивный тренажёр для подготовки к экзамену ФСФР. Доведём до проходного балла по твоим слабым темам.',
+  },
+  {
+    icon: '🧭',
+    title: 'Как это работает',
+    text: 'Короткий входной тест покажет пробелы. Дальше — занятия: сжатая теория под конкретные задания, потом практика с AI-разбором ошибок.',
+  },
+  {
+    icon: '🎯',
+    title: 'Учим то, что нужно',
+    text: 'Алгоритм сам выбирает темы с наибольшими пробелами и отслеживает прогресс. Начнём с короткого теста — это займёт пару минут.',
+  },
+]
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const cleanName = name.trim()
-    const cleanEmail = email.trim().toLowerCase()
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
-      setErr('Неверный формат email')
-      return
-    }
-    if (mode === 'signup' && cleanName.length < 2) {
-      setErr('Введите имя (минимум 2 символа)')
-      return
-    }
-    saveUser({
-      id: userIdFromEmail(cleanEmail),
-      name: cleanName || cleanEmail.split('@')[0],
-      email: cleanEmail,
-    })
-    onDone()
-  }
+export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
+  const [step, setStep] = useState(0)
+  const last = step === STEPS.length - 1
+  const s = STEPS[step]
 
   return (
-    <div className="screen onboarding-screen">
-      <div className="onboarding-card">
-        <div className="onboarding-brand">
-          <div className="brand-mark">Ф</div>
-          <div>
-            <div className="brand-title">AI-подготовка</div>
-            <div className="brand-sub">Базовый экзамен ФСФР</div>
+    <div className="screen">
+      <div className="screen-body centered">
+        <div className="onb-card">
+          <div className="onb-logo">
+            <Logo size={48} />
+          </div>
+          <div className="onb-icon" aria-hidden="true">
+            {s.icon}
+          </div>
+          <h1 className="screen-title" style={{ textAlign: 'center' }}>
+            {s.title}
+          </h1>
+          <p className="screen-subtitle" style={{ textAlign: 'center' }}>
+            {s.text}
+          </p>
+
+          <div className="onb-dots" role="tablist" aria-label="Шаги">
+            {STEPS.map((_, i) => (
+              <span key={i} className={`onb-dot ${i === step ? 'active' : ''}`} />
+            ))}
+          </div>
+
+          <div className="actions-row" style={{ marginTop: 18 }}>
+            {!last ? (
+              <>
+                <button className="pill pill-ghost" onClick={onDone}>
+                  Пропустить
+                </button>
+                <button
+                  className="pill pill-primary big"
+                  onClick={() => setStep((x) => x + 1)}
+                >
+                  Далее →
+                </button>
+              </>
+            ) : (
+              <button className="pill pill-primary big" onClick={onDone}>
+                Пройти входной тест →
+              </button>
+            )}
           </div>
         </div>
-
-        <h1 className="onboarding-title">
-          {mode === 'signup'
-            ? 'Создайте аккаунт и начнём с входного теста'
-            : 'Войдите, чтобы продолжить'}
-        </h1>
-        <p className="onboarding-sub">
-          25 вопросов из реального банка экзамена помогут собрать карту знаний.
-          Дальше — практика и теория ровно там, где есть пробелы.
-        </p>
-
-        <div className="tabs onboarding-tabs">
-          <button
-            className={mode === 'signup' ? 'active' : ''}
-            onClick={() => setMode('signup')}
-          >
-            Регистрация
-          </button>
-          <button
-            className={mode === 'login' ? 'active' : ''}
-            onClick={() => setMode('login')}
-          >
-            Вход
-          </button>
-        </div>
-
-        <form className="form" onSubmit={submit}>
-          {mode === 'signup' && (
-            <label className="field">
-              <span>Имя</span>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Иван"
-                autoFocus
-              />
-            </label>
-          )}
-          <label className="field">
-            <span>Email</span>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              autoFocus={mode === 'login'}
-            />
-          </label>
-          {err && <div className="error">{err}</div>}
-          <button className="pill pill-primary big" type="submit">
-            {mode === 'signup' ? 'Создать аккаунт →' : 'Войти →'}
-          </button>
-        </form>
-
-        <p className="onboarding-foot">
-          MVP: профиль хранится локально в браузере.
-        </p>
       </div>
     </div>
   )
