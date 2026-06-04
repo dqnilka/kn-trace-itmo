@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import HealthBadge from './components/HealthBadge'
-import OnboardingScreen from './screens/OnboardingScreen'
+import AuthScreen from './screens/AuthScreen'
 import EntranceTestScreen from './screens/EntranceTestScreen'
 import ResultsScreen from './screens/ResultsScreen'
 import DashboardScreen from './screens/DashboardScreen'
@@ -11,33 +11,70 @@ import TheoryScreen from './screens/TheoryScreen'
 import ExamVariantScreen from './screens/ExamVariantScreen'
 import WipScreen from './screens/WipScreen'
 import { api } from './api'
+import { clearToken, decodeUser, getToken } from './state/auth'
+import { ACTIVE_EXAM_SLUG } from './state/bank'
+import { loadMastery, saveMastery } from './state/mastery'
 import {
   clearUser,
   loadLastResults,
   loadUser,
   saveLastResults,
+  saveUser,
 } from './state/user'
 import type {
+  AuthUser,
   BankEntranceResult,
   Health,
+  MasteryStore,
   Screen,
   UserState,
   WipReason,
 } from './types'
 
-function initialScreen(user: UserState | null, hasResults: boolean): Screen {
-  if (!user) return 'onboarding'
+function initialScreen(hasResults: boolean): Screen {
   if (!hasResults) return 'entrance'
   return 'dashboard'
 }
 
+/** Hydrate localStorage mastery from the server (server is source of truth). */
+async function hydrateMastery(): Promise<void> {
+  try {
+    const res = await api.myMastery(ACTIVE_EXAM_SLUG)
+    const local = loadMastery()
+    const merged: MasteryStore = { ...local }
+    const now = new Date().toISOString()
+    for (const [code, st] of Object.entries(res.themes)) {
+      const prev = merged[code]
+      // Keep whichever side has more answers — avoids losing unsynced local.
+      if (!prev || st.asked >= prev.asked) {
+        merged[code] = { asked: st.asked, correct: st.correct, last_practiced: now }
+      }
+    }
+    saveMastery(merged)
+  } catch {
+    // best-effort — offline / no DB → keep local
+  }
+}
+
 export default function App() {
-  const [user, setUser] = useState<UserState | null>(() => loadUser())
+  const [authed, setAuthed] = useState<boolean>(() => decodeUser(getToken()) != null)
+  const [user, setUser] = useState<UserState | null>(() => {
+    const au = decodeUser(getToken())
+    if (!au) return null
+    return (
+      loadUser() ?? {
+        id: au.id,
+        name: au.email.split('@')[0],
+        email: au.email,
+        is_admin: au.is_admin,
+      }
+    )
+  })
   const [lastResults, setLastResults] = useState<BankEntranceResult | null>(() =>
     loadLastResults(),
   )
   const [screen, setScreen] = useState<Screen>(() =>
-    initialScreen(loadUser(), loadLastResults() != null),
+    initialScreen(loadLastResults() != null),
   )
   const [wipReason, setWipReason] = useState<WipReason>('other')
   const [practiceTheme, setPracticeTheme] = useState<string | null>(null)
@@ -68,9 +105,31 @@ export default function App() {
     }
   }, [])
 
-  const goOnboarded = () => {
-    setUser(loadUser())
-    setScreen('entrance')
+  // Sync local mastery up to the server whenever we land on the dashboard
+  // (after entrance / a lesson / practice). Absolute upsert → idempotent.
+  useEffect(() => {
+    if (!authed || screen !== 'dashboard') return
+    const store = loadMastery()
+    const themes: Record<string, { asked: number; correct: number }> = {}
+    for (const [code, m] of Object.entries(store)) {
+      themes[code] = { asked: m.asked, correct: m.correct }
+    }
+    api.putMyMastery(ACTIVE_EXAM_SLUG, themes).catch(() => {})
+  }, [authed, screen])
+
+  const onAuthed = (au: AuthUser) => {
+    const u: UserState = {
+      id: au.id,
+      name: au.display_name || au.email.split('@')[0],
+      email: au.email,
+      is_admin: au.is_admin,
+    }
+    saveUser(u)
+    setUser(u)
+    setAuthed(true)
+    hydrateMastery().finally(() => {
+      setScreen(loadLastResults() != null ? 'dashboard' : 'entrance')
+    })
   }
 
   const onEntranceDone = (summary: BankEntranceResult) => {
@@ -85,10 +144,11 @@ export default function App() {
   }
 
   const onLogout = () => {
+    clearToken()
     clearUser()
     setUser(null)
+    setAuthed(false)
     setLastResults(null)
-    setScreen('onboarding')
   }
 
   const goWip = (r: WipReason) => {
@@ -114,10 +174,26 @@ export default function App() {
     setScreen('exam')
   }
 
+  // Auth gate — без валидного токена показываем вход/регистрацию.
+  if (!authed || !user) {
+    return (
+      <div className="app">
+        <header className="app-header">
+          <div className="brand">
+            <div className="brand-mark">Ф</div>
+            <div>
+              <h1>AI-подготовка к экзамену</h1>
+              <div className="subtitle">Базовый ФСФР · адаптивный тренажёр</div>
+            </div>
+          </div>
+        </header>
+        <AuthScreen onAuthed={onAuthed} />
+      </div>
+    )
+  }
+
   let body: React.ReactNode = null
-  if (screen === 'onboarding' || !user) {
-    body = <OnboardingScreen onDone={goOnboarded} />
-  } else if (screen === 'entrance') {
+  if (screen === 'entrance') {
     body = (
       <EntranceTestScreen
         user={user}
@@ -195,7 +271,18 @@ export default function App() {
       />
     )
   } else {
-    body = <OnboardingScreen onDone={goOnboarded} />
+    body = (
+      <DashboardScreen
+        user={user}
+        onAdaptive={goAdaptive}
+        onPractice={goPractice}
+        onTheory={goTheory}
+        onExamVariant={goExam}
+        onLogout={onLogout}
+        onRetakeEntrance={() => setScreen('entrance')}
+        hasEntranceResults={lastResults != null}
+      />
+    )
   }
 
   return (
@@ -209,13 +296,15 @@ export default function App() {
           </div>
         </div>
         <div className="header-right">
-          <a
-            className="link-button"
-            href="/admin"
-            title="Управление экзаменами, пайплайн, граф"
-          >
-            ⚙ Админ-панель
-          </a>
+          {user?.is_admin && (
+            <a
+              className="link-button"
+              href="/admin"
+              title="Управление экзаменами, пайплайн, граф"
+            >
+              ⚙ Админ-панель
+            </a>
+          )}
           <HealthBadge health={health} error={healthErr} />
         </div>
       </header>

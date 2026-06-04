@@ -45,6 +45,24 @@ export type UserState = {
   id: number
   name: string
   email: string
+  is_admin?: boolean
+}
+
+export type AuthUser = {
+  id: number
+  email: string
+  display_name: string | null
+  is_admin: boolean
+}
+
+export type AuthResponse = {
+  token: string
+  user: AuthUser
+}
+
+export type ServerMastery = {
+  exam_slug: string
+  themes: Record<string, { asked: number; correct: number }>
 }
 
 export type WipReason = 'theory' | 'other'
