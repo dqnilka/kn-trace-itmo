@@ -6,16 +6,19 @@
 #   llm_api_key          → у выбранного LLM-провайдера (OpenAI/OpenRouter/DeepSeek)
 #   bucket_name          → глобально-уникальное имя, например "kt-frontend-yourname"
 
-cloud_id    = "b1g..."
-folder_id   = "b1g..."
+cloud_id    = "b1g..."                          # console.cloud.yandex.ru → «Облако»
+folder_id   = "b1g..."                          # каталог проекта (ai-knowledge-tracing)
 sa_key_file = "./kt-deployer-key.json"
 
 # --- LLM ---
-llm_api_key  = "sk-..."
-llm_base_url = "https://api.openai.com/v1"
-llm_model    = "gpt-4o-mini"
-# llm_base_url = "https://api.deepseek.com/v1"      # дёшево
-# llm_model    = "deepseek-chat"
+# Рабочий профиль проекта — YandexGPT (folder проекта, SA llm-test):
+llm_api_key     = "AQVN..."                                   # API-ключ сервисного аккаунта llm-test (роль ai.languageModels.user)
+llm_base_url    = "https://llm.api.cloud.yandex.net/v1"
+llm_model       = "gpt://<folder_id>/yandexgpt/latest"        # подставь folder_id своего каталога
+llm_auth_scheme = "api-key"                                   # статический ключ SA → заголовок "Api-Key". Для IAM-токена — "bearer" или ""
+# Альтернативы (любой OpenAI-совместимый провайдер):
+# llm_api_key="sk-..." llm_base_url="https://api.openai.com/v1"   llm_model="gpt-4o-mini"
+# llm_api_key="sk-..." llm_base_url="https://api.deepseek.com/v1" llm_model="deepseek-chat"
 
 # --- Frontend bucket ---
 bucket_name = "kt-frontend-CHANGE-ME"

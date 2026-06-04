@@ -39,6 +39,17 @@ class Settings(BaseSettings):
     # CA bundle is only needed for corporate proxies (Yandex Eliza). Public
     # endpoints work with the system trust store. Leave empty unless required.
     llm_ca_bundle: str | None = Field(default=None, alias="LLM_CA_BUNDLE")
+    # Authorization scheme for the OpenAI-compatible endpoint.
+    #   "bearer"  → Authorization: Bearer <key>   (OpenAI, OpenRouter, DeepSeek,
+    #               Yandex Eliza, YandexGPT with an IAM token)
+    #   "api-key" → Authorization: Api-Key <key>  (YandexGPT with a service-
+    #               account static API key — the OpenAI SDK can't send this
+    #               scheme natively, so we inject it as a header)
+    # When unset, auto-detected from the base URL + key shape (see
+    # ``Generator.from_settings``).
+    llm_auth_scheme: Literal["bearer", "api-key"] | None = Field(
+        default=None, alias="LLM_AUTH_SCHEME"
+    )
 
     # Effective API key with backward-compat fallback (LLM_API_KEY > SOY_TOKEN).
     @property
