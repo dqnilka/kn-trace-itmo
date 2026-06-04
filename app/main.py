@@ -4,12 +4,15 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse, ORJSONResponse
 
 from app.admin.router import router as admin_router
 from app.api.schemas import HealthResponse
 from app.api.v1 import _health_payload, router as v1_router
+from app.auth.deps import require_admin
+from app.auth.router import router as auth_router
+from app.core import db
 from app.core.config import get_settings
 from app.core.llm_budget import RateLimiter
 from app.core.logging import configure_logging, get_logger
@@ -25,11 +28,16 @@ async def lifespan(app: FastAPI):
     logger.info("Starting AI Knowledge Tracing API v0.1.0")
     ctx = AppContext.startup(settings)
     app.state.ctx = ctx
+    try:
+        await db.init_pool()
+    except Exception as e:  # noqa: BLE001 — DB optional; never block startup
+        logger.error("DB init failed (auth disabled): %s", e)
     logger.info("Application ready.")
     try:
         yield
     finally:
         logger.info("Shutting down.")
+        await db.close_pool()
 
 
 def create_app() -> FastAPI:
@@ -60,7 +68,9 @@ def create_app() -> FastAPI:
         return await call_next(request)
 
     app.include_router(v1_router)
-    app.include_router(admin_router)
+    app.include_router(auth_router)
+    # Admin API is gated by the is_admin role (see app/auth/deps.require_admin).
+    app.include_router(admin_router, dependencies=[Depends(require_admin)])
 
     @app.get("/healthz", response_model=HealthResponse)
     async def healthz():

@@ -113,6 +113,19 @@ class Settings(BaseSettings):
     app_port: int = Field(default=8000, alias="APP_PORT")
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = Field(default="INFO", alias="LOG_LEVEL")
 
+    # --- Auth / database ---
+    # Postgres DSN (postgresql://user:pass@host:6432/db). Empty → auth disabled.
+    database_url: str | None = Field(default=None, alias="DATABASE_URL")
+    db_ssl_verify: bool = Field(default=False, alias="DB_SSL_VERIFY")
+    jwt_secret: str = Field(default="dev-insecure-change-me", alias="JWT_SECRET")
+    jwt_expires_h: int = Field(default=720, alias="JWT_EXPIRES_H")  # 30 days
+    # Comma-separated emails auto-granted is_admin on register/login (bootstrap).
+    admin_emails: str = Field(default="", alias="ADMIN_EMAILS")
+
+    @property
+    def admin_email_set(self) -> set[str]:
+        return {e.strip().lower() for e in self.admin_emails.split(",") if e.strip()}
+
     # --- Test/CI helpers ---
     skip_llm: bool = Field(default=False, alias="SKIP_LLM")
     """If True, generator skips real LLM calls (for unit tests)."""

@@ -3,6 +3,8 @@ import type {
   AdminIngestOptions,
   AdminRun,
   AdminRunsResponse,
+  AuthResponse,
+  AuthUser,
   EventResponse,
   ExamListResponse,
   ExamBank,
@@ -10,8 +12,10 @@ import type {
   Health,
   MasteryResponse,
   RecommendResponse,
+  ServerMastery,
   ThemeArticleResponse,
 } from './types'
+import { getToken } from './state/auth'
 
 // Default per-request timeout. Guards against hung backend / LLM calls that
 // would otherwise burn tokens and freeze the UI. Callers may pass their own
@@ -30,8 +34,14 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const signal = init?.signal
     ? anySignal([init.signal, timeout.signal])
     : timeout.signal
+  // Attach bearer token (if logged in) to every request.
+  const token = getToken()
+  const headers = {
+    ...(init?.headers || {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  }
   try {
-    const res = await fetch(url, { ...init, signal })
+    const res = await fetch(url, { ...init, headers, signal })
     if (!res.ok) {
       const text = await res.text().catch(() => '')
       throw new Error(`${res.status} ${res.statusText}${text ? `: ${text}` : ''}`)
@@ -57,6 +67,29 @@ function anySignal(signals: AbortSignal[]): AbortSignal {
 
 export const api = {
   health: () => fetchJson<Health>('/healthz'),
+  // --- Auth ---
+  register: (body: { email: string; password: string; display_name?: string }) =>
+    fetchJson<AuthResponse>('/api/v1/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
+  login: (body: { email: string; password: string }) =>
+    fetchJson<AuthResponse>('/api/v1/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
+  me: () => fetchJson<AuthUser>('/api/v1/auth/me'),
+  // --- Server-side progress ---
+  myMastery: (slug: string) =>
+    fetchJson<ServerMastery>(`/api/v1/me/mastery?exam_slug=${encodeURIComponent(slug)}`),
+  putMyMastery: (slug: string, themes: Record<string, { asked: number; correct: number }>) =>
+    fetchJson<{ ok: boolean }>('/api/v1/me/mastery', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ exam_slug: slug, themes }),
+    }),
   // Multi-exam trainer plane
   exams: () => fetchJson<ExamListResponse>('/api/v1/exams'),
   examBank: (slug: string) => fetchJson<ExamBank>(`/api/v1/exams/${slug}/bank`),

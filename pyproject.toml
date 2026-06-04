@@ -27,6 +27,10 @@ dependencies = [
     "jinja2>=3.1",
     # Admin uses scripts/convert_bank.py to ingest uploaded XLSX in-process.
     "openpyxl>=3.1",
+    # Auth + server-side progress (YC Managed PostgreSQL).
+    "asyncpg>=0.29",
+    "bcrypt>=4.1",
+    "pyjwt>=2.8",
 ]
 
 [project.optional-dependencies]
