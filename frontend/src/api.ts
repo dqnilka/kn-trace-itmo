@@ -83,10 +83,15 @@ export const api = {
     }),
   mastery: (slug: string, user_id: number) =>
     fetchJson<MasteryResponse>(`/api/v1/exams/${slug}/mastery/${user_id}`),
-  examTheme: (slug: string, code: string) =>
-    fetchJson<ThemeArticleResponse>(
-      `/api/v1/exams/${slug}/theme/${encodeURIComponent(code)}`,
-    ),
+  examTheme: (slug: string, code: string, taskIds?: number[]) => {
+    const qs =
+      taskIds && taskIds.length
+        ? `?task_ids=${encodeURIComponent(taskIds.join(','))}`
+        : ''
+    return fetchJson<ThemeArticleResponse>(
+      `/api/v1/exams/${slug}/theme/${encodeURIComponent(code)}${qs}`,
+    )
+  },
 }
 
 // Admin API (no auth in MVP)

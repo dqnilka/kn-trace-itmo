@@ -1,5 +1,11 @@
 import type { Health } from '../types'
 
+/**
+ * Тихий индикатор состояния бэкенда: цветная точка + короткий статус.
+ * Технические цифры графа (задачи/концепты/связи/prereq) намеренно НЕ
+ * показываем пользователю — это внутренняя телеметрия, не часть продукта.
+ * Подробности остаются в title (tooltip) для отладки.
+ */
 export default function HealthBadge({
   health,
   error,
@@ -10,20 +16,23 @@ export default function HealthBadge({
   if (error) {
     return (
       <span className="badge badge-error" title={error}>
-        бэкенд недоступен
+        <span className="dot" /> нет связи
       </span>
     )
   }
-  if (!health) return <span className="badge badge-muted">проверка…</span>
+  if (!health)
+    return (
+      <span className="badge badge-muted">
+        <span className="dot" /> …
+      </span>
+    )
   const ok = health.status === 'ok'
   const main = health.exams?.[0]
   const tooltip = [
     `graph=${health.graph_loaded}`,
     `vectors=${health.vector_store_ready}`,
     `llm=${health.llm_configured}`,
-    main
-      ? `${main.tasks} tasks · ${main.concepts} concepts · ${main.task_concept_links} task↔concept`
-      : '',
+    main ? `${main.tasks} tasks · ${main.concepts} concepts` : '',
   ]
     .filter(Boolean)
     .join(' · ')
@@ -31,14 +40,7 @@ export default function HealthBadge({
   return (
     <span className={`badge ${ok ? 'badge-ok' : 'badge-warn'}`} title={tooltip}>
       <span className="dot" />
-      {ok ? 'ok' : 'degraded'}
-      {main && (
-        <>
-          {' '}· {main.tasks} задач · {main.concepts} концептов · {main.task_concept_links}{' '}
-          связей
-          {main.prereq_edges ? <> · {main.prereq_edges} prereq</> : null}
-        </>
-      )}
+      {ok ? 'онлайн' : 'нестабильно'}
     </span>
   )
 }

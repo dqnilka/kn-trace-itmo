@@ -1,11 +1,13 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import SafeMarkdown from '../components/SafeMarkdown'
 import { api } from '../api'
 import QuestionCard from '../components/QuestionCard'
+import MasteryRings, { type RingDatum } from '../components/MasteryRings'
 import { ACTIVE_EXAM_SLUG, buildIndex, loadBank } from '../state/bank'
 import {
   bumpMastery,
   loadMastery,
+  overallStats,
   pickWeakThemes,
   saveMastery,
   themeScore,
@@ -15,6 +17,7 @@ import type {
   BankTask,
   BankTheme,
   ExamBank,
+  MasteryStore,
 } from '../types'
 
 /**
@@ -81,6 +84,9 @@ export default function LearningPathScreen({
   onRestart: () => void
 }) {
   const [phase, setPhase] = useState<Phase>({ kind: 'loading' })
+  // Snapshot of mastery BEFORE the session — used to animate the rings
+  // (before% → after%) on the completion screen.
+  const prevMasteryRef = useRef<MasteryStore>({})
 
   useEffect(() => {
     let cancelled = false
@@ -92,6 +98,7 @@ export default function LearningPathScreen({
         const sizes = new Map<string, number>()
         for (const [k, v] of idx.tasksByTheme.entries()) sizes.set(k, v.length)
         const mastery = loadMastery()
+        prevMasteryRef.current = mastery
         const themes = pickWeakThemes(mastery, bank, SESSION_THEMES, sizes)
         if (themes.length === 0) {
           setPhase({ kind: 'error', message: 'В банке нет тем с вопросами.' })
@@ -132,7 +139,11 @@ export default function LearningPathScreen({
     if (!unit) return
     let cancelled = false
     api
-      .examTheme(ACTIVE_EXAM_SLUG, unit.theme.code)
+      .examTheme(
+        ACTIVE_EXAM_SLUG,
+        unit.theme.code,
+        unit.tasks.map((t) => t.id),
+      )
       .then((r) => {
         if (cancelled) return
         const sections = (r.sections || []).slice(0, 2).map((s) => ({
@@ -252,43 +263,34 @@ export default function LearningPathScreen({
   if (phase.kind === 'done') {
     const total = phase.answers.length
     const correct = phase.answers.filter((a) => a.is_correct).length
-    const pct = total === 0 ? 0 : Math.round((correct / total) * 100)
+    const prev = prevMasteryRef.current
+    const now = loadMastery()
+
+    const pctOf = (store: MasteryStore, code: string): number =>
+      themeScore(store, code).pct ?? 0
+
+    const themeRings: RingDatum[] = phase.units.map((u) => ({
+      label: u.theme.name,
+      from: pctOf(prev, u.theme.code),
+      to: pctOf(now, u.theme.code),
+    }))
+    const overall: RingDatum = {
+      label: 'Общий уровень',
+      from: overallStats(prev).pct ?? 0,
+      to: overallStats(now).pct ?? 0,
+    }
+
     return (
       <div className="screen">
         <div className="screen-body narrow centered">
-          <div className="trophy">🎓</div>
           <h1 className="screen-title">Занятие завершено</h1>
           <p className="screen-subtitle">
-            Прошли {phase.units.length} тем · {total} задач
+            Прошли {phase.units.length} тем · {correct} из {total} верно
           </p>
-          <div className="score-card big">
-            <div className="ring-value-xl">{pct}%</div>
-            <div className="score-card-meta">
-              {correct} из {total} верно за сессию
-            </div>
-          </div>
-          <div className="adaptive-themes">
-            {phase.units.map((u) => {
-              const ans = phase.answers.filter((a) => a.theme_code === u.theme.code)
-              const c = ans.filter((a) => a.is_correct).length
-              const p = ans.length === 0 ? 0 : c / ans.length
-              const cls = p >= 0.66 ? 'strong' : p >= 0.34 ? 'medium' : 'weak'
-              const m = themeScore(loadMastery(), u.theme.code)
-              const overallText =
-                m.confidence === 'ok' && m.pct != null
-                  ? ` · ${Math.round(m.pct * 100)}% по теме`
-                  : ''
-              return (
-                <div key={u.theme.id} className={`adaptive-theme-row ${cls}`}>
-                  <div className="adaptive-theme-name">{u.theme.name}</div>
-                  <div className="adaptive-theme-pct">
-                    {c}/{ans.length}{overallText}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-          <div className="actions-row">
+
+          <MasteryRings themes={themeRings} overall={overall} />
+
+          <div className="actions-row" style={{ marginTop: 24 }}>
             <button className="pill pill-primary" onClick={onRestart}>
               Ещё одно занятие →
             </button>
