@@ -1,8 +1,10 @@
+import Button from '../components/ui/Button'
 import type { BankEntranceResult } from '../types'
 
 /**
- * Итог входного теста: крупный результат-кольцо + слабые темы карточками с
- * понятной формулировкой и одна CTA. Мотивирующий тон вместо клинического.
+ * Итог входного теста — редакторская карточка: крупный счёт с правилом и
+ * прогресс-баром, нумерованный список слабых тем, одна CTA. Острые углы,
+ * хайрлайн-разделители — единый язык FinUplift.
  */
 export default function ResultsScreen({
   result,
@@ -13,7 +15,6 @@ export default function ResultsScreen({
 }) {
   const pct =
     result.total === 0 ? 0 : Math.round((result.correct / result.total) * 100)
-  const circ = 2 * Math.PI * 52
 
   const weak = Object.values(result.per_chapter)
     .filter((c) => c.wrong > 0)
@@ -22,75 +23,58 @@ export default function ResultsScreen({
 
   const tone =
     pct >= 70
-      ? 'Сильный старт!'
+      ? 'Сильный старт. Закроем оставшиеся пробелы.'
       : pct >= 40
-      ? 'Хорошая база — есть куда расти.'
-      : 'Отличная отправная точка.'
+      ? 'Хорошая база — дальше прицельно по слабым темам.'
+      : 'Отличная отправная точка. Начнём с фундамента.'
 
   return (
     <div className="screen results-screen">
-      <div className="screen-body narrow centered">
-        <h1 className="screen-title">Входной тест пройден</h1>
-        <p className="screen-subtitle">
-          {tone} Дальше — занятия по твоим слабым темам.
-        </p>
+      <div className="screen-body centered">
+        <div className="rt-card">
+          <div className="rt-eyebrow">Входной тест пройден</div>
+          <h1 className="rt-headline">Ваш стартовый уровень</h1>
+          <div className="rt-tone">{tone}</div>
 
-        <div
-          className="result-ring"
-          role="img"
-          aria-label={`Результат ${pct} процентов`}
-        >
-          <svg width="130" height="130" viewBox="0 0 130 130">
-            <circle
-              cx="65"
-              cy="65"
-              r="52"
-              fill="none"
-              stroke="var(--bg-3)"
-              strokeWidth="12"
-            />
-            <circle
-              cx="65"
-              cy="65"
-              r="52"
-              fill="none"
-              stroke="var(--accent)"
-              strokeWidth="12"
-              strokeLinecap="round"
-              strokeDasharray={circ}
-              strokeDashoffset={circ * (1 - pct / 100)}
-              transform="rotate(-90 65 65)"
-            />
-            <text x="65" y="60" textAnchor="middle" className="result-ring-pct">
-              {pct}%
-            </text>
-            <text x="65" y="84" textAnchor="middle" className="result-ring-sub">
-              {result.correct}/{result.total} верно
-            </text>
-          </svg>
-        </div>
-
-        {weak.length > 0 && (
-          <div className="result-weak">
-            <div className="result-weak-title">С этих тем начнём:</div>
-            {weak.map((w) => {
-              const ok = w.asked - w.wrong
-              return (
-                <div key={w.chapter_id} className="result-weak-card">
-                  <span className="result-weak-name">{w.chapter_name}</span>
-                  <span className="result-weak-score">
-                    {ok} из {w.asked} верно
-                  </span>
-                </div>
-              )
-            })}
+          <div className="rt-score">
+            <div className="rt-score-pct">{pct}%</div>
+            <div className="rt-score-rule" />
+            <div className="rt-score-side">
+              <div className="rt-score-frac">
+                {result.correct} <span>/ {result.total} верно</span>
+              </div>
+              <div className="rt-bar">
+                <div className="rt-bar-fill" style={{ width: `${pct}%` }} />
+              </div>
+            </div>
           </div>
-        )}
 
-        <div className="actions-row" style={{ marginTop: 26 }}>
-          <button className="pill pill-primary big" onClick={onContinue}>
-            Начать подготовку →
-          </button>
+          {weak.length > 0 && (
+            <>
+              <div className="rt-divider" />
+              <div className="rt-weak-title">С этих тем начнём</div>
+              {weak.map((w, i) => {
+                const ok = w.asked - w.wrong
+                return (
+                  <div key={w.chapter_id} className="rt-weak-row">
+                    <span className="rt-weak-rank">
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                    <span className="rt-weak-name">{w.chapter_name}</span>
+                    <span className="rt-weak-score">
+                      {ok} из {w.asked}
+                    </span>
+                  </div>
+                )
+              })}
+            </>
+          )}
+
+          <div className="rt-cta">
+            <Button size="big" full onClick={onContinue}>
+              Начать подготовку →
+            </Button>
+          </div>
         </div>
       </div>
     </div>

@@ -333,14 +333,14 @@ export default function LearningPathScreen({
                   <span className="theory-loading-dot" />
                   <span className="theory-loading-dot" />
                   <span className="meta">
-                    AI готовит чистое объяснение темы из учебника… ~5 сек
+                    Готовим объяснение темы по учебнику… ~5 сек
                   </span>
                 </div>
               )}
               {phase.theoryError === 'empty' && (
                 <div className="muted">
                   Теории по этой теме в учебнике мало. Переходим сразу к
-                  практике — на ошибках AI разберёт каждый вариант.
+                  практике — на ошибках разберём каждый вариант.
                 </div>
               )}
               {phase.theoryError && phase.theoryError !== 'empty' && (

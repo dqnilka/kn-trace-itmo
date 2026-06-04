@@ -168,7 +168,7 @@ export default function QuestionCard({
             </div>
             {enableExplain && picked !== correctLabel && !wantExplain && (
               <button className="pill pill-ghost" onClick={() => setWantExplain(true)}>
-                🧠 AI-разбор
+                🧠 Разбор
               </button>
             )}
             <button className="pill pill-primary" onClick={proceed}>

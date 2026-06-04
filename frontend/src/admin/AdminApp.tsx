@@ -302,7 +302,7 @@ function AdminExamPanel({
             ok={exam.has_theory}
             disabled={busy}
             onPick={onUploadTheory}
-            hint="Markdown учебника, используется в RAG-разборах"
+            hint="Markdown учебника, используется в разборах теории"
           />
         </div>
       </div>
