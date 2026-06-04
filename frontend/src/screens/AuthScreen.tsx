@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { api, isAbortError } from '../api'
 import Logo from '../components/Logo'
+import Button from '../components/ui/Button'
+import Field from '../components/ui/Field'
 import { setToken } from '../state/auth'
 import type { AuthUser } from '../types'
 
@@ -64,7 +66,7 @@ export default function AuthScreen({
             <Logo size={52} />
           </div>
           <h1 className="screen-title" style={{ textAlign: 'center', marginBottom: 4 }}>
-            ФинТренажёр
+            FinUplift
           </h1>
           <p
             className="screen-subtitle"
@@ -92,37 +94,37 @@ export default function AuthScreen({
 
           <form className="auth-form" onSubmit={submit}>
             {mode === 'register' && (
-              <input
-                className="input"
+              <Field
+                label="Имя"
                 type="text"
-                placeholder="Имя (необязательно)"
+                placeholder="как к вам обращаться (необязательно)"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 autoComplete="name"
               />
             )}
-            <input
-              className="input"
+            <Field
+              label="Email"
               type="email"
-              placeholder="Email"
+              placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
               required
             />
-            <input
-              className="input"
+            <Field
+              label="Пароль"
               type="password"
-              placeholder="Пароль (от 6 символов)"
+              placeholder="минимум 6 символов"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+              error={err}
               required
             />
-            {err && <div className="error">{err}</div>}
-            <button className="pill pill-primary big" type="submit" disabled={busy}>
-              {busy ? '…' : mode === 'login' ? 'Войти' : 'Создать аккаунт'}
-            </button>
+            <Button type="submit" size="big" full loading={busy} className="auth-submit">
+              {mode === 'login' ? 'Войти' : 'Создать аккаунт'}
+            </Button>
           </form>
         </div>
       </div>

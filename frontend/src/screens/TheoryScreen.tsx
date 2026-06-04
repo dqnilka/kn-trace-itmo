@@ -79,7 +79,7 @@ export default function TheoryScreen({
         </div>
         <div className="screen-body narrow">
           <div className="meta" style={{ marginBottom: 14 }}>
-            ✍️ AI составляет разбор под задания темы — обычно ~5 секунд…
+            ✍️ Составляем разбор под задания темы — обычно ~5 секунд…
           </div>
           <article className="theory-article">
             <TheorySkeleton />
@@ -142,7 +142,7 @@ export default function TheoryScreen({
             <section className="theory-empty">
               <p className="muted">
                 В учебнике мало материала по этой теме. Перейди сразу к практике —
-                на ошибках AI разберёт каждый вариант.
+                на ошибках разберём каждый вариант.
               </p>
             </section>
           )}
@@ -199,7 +199,7 @@ export default function TheoryScreen({
           <div className="theory-cta-body">
             <div className="theory-cta-title">Готов проверить себя?</div>
             <div className="theory-cta-meta">
-              {data.task_count} задач в этой теме · на ошибках AI поможет
+              {data.task_count} задач в этой теме · разберём ошибки
             </div>
           </div>
           <button

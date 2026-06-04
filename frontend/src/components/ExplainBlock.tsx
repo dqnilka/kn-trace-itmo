@@ -48,18 +48,18 @@ export default function ExplainBlock({
       <div className="explain-block">
         <div className="explain-head">
           <span className="explain-icon">🧠</span>
-          <span className="explain-title">AI готовит разбор…</span>
+          <span className="explain-title">Готовим разбор…</span>
         </div>
         <div className="progress indeterminate">
           <div className="progress-bar" />
         </div>
-        <p className="meta">RAG-поиск по учебнику + генерация объяснения. До 10 секунд.</p>
+        <p className="meta">Подбираем фрагменты учебника и собираем объяснение. До 10 секунд.</p>
       </div>
     )
   }
 
   if (err) {
-    return <div className="error">AI-разбор недоступен: {err}</div>
+    return <div className="error">Разбор недоступен: {err}</div>
   }
 
   if (!data) return null
@@ -68,7 +68,7 @@ export default function ExplainBlock({
     <div className="explain-block">
       <div className="explain-head">
         <span className="explain-icon">🧠</span>
-        <span className="explain-title">AI-разбор задачи</span>
+        <span className="explain-title">Разбор задачи</span>
         <span className="chip chip-muted">
           {data.generation_mode === 'llm' ? 'LLM' : 'extractive'}
         </span>

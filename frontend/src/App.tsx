@@ -104,7 +104,11 @@ export default function App() {
     setUser(u)
     setAuthed(true)
     hydrateMastery().finally(() => {
-      setScreen(loadLastResults() != null ? 'dashboard' : 'onboarding')
+      // «Уже начинал» = есть результаты входного ИЛИ серверный прогресс по темам.
+      // Иначе новый пользователь → онбординг → входной тест.
+      const started =
+        loadLastResults() != null || Object.keys(loadMastery()).length > 0
+      setScreen(started ? 'dashboard' : 'onboarding')
     })
   }
 
