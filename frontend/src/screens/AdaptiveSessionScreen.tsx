@@ -176,7 +176,7 @@ export default function AdaptiveSessionScreen({
     return (
       <div className="screen">
         <div className="screen-body narrow centered">
-          <div className="trophy">🎯</div>
+          <div className="trophy"></div>
           <h1 className="screen-title">Сессия завершена</h1>
           <p className="screen-subtitle">
             Прошли {rows.length} тем · {total} вопросов

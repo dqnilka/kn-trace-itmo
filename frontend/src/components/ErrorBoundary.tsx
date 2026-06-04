@@ -37,7 +37,7 @@ export default class ErrorBoundary extends Component<
         <div className="screen">
           <div className="screen-body narrow centered">
             <div className="trophy" aria-hidden="true">
-              💥
+              
             </div>
             <h1 className="screen-title">Что-то сломалось</h1>
             <p className="screen-subtitle">

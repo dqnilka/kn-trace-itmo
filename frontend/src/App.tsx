@@ -31,9 +31,12 @@ import type {
   WipReason,
 } from './types'
 
-function initialScreen(hasResults: boolean): Screen {
-  if (!hasResults) return 'entrance'
-  return 'dashboard'
+function initialScreen(): Screen {
+  // Возвращающийся пользователь (есть результаты входного ИЛИ накопленный
+  // прогресс) → Главная. Иначе — входной тест.
+  const started =
+    loadLastResults() != null || Object.keys(loadMastery()).length > 0
+  return started ? 'dashboard' : 'entrance'
 }
 
 /** Hydrate localStorage mastery from the server (server is source of truth). */
@@ -73,9 +76,7 @@ export default function App() {
   const [lastResults, setLastResults] = useState<BankEntranceResult | null>(() =>
     loadLastResults(),
   )
-  const [screen, setScreen] = useState<Screen>(() =>
-    initialScreen(loadLastResults() != null),
-  )
+  const [screen, setScreen] = useState<Screen>(() => initialScreen())
   const [wipReason, setWipReason] = useState<WipReason>('other')
   const [practiceTheme, setPracticeTheme] = useState<string | null>(null)
   const [theoryTheme, setTheoryTheme] = useState<string | null>(null)
@@ -282,7 +283,7 @@ export default function App() {
               href="/admin"
               title="Управление экзаменами, пайплайн, граф"
             >
-              ⚙ Админ-панель
+              Админ-панель
             </a>
           )}
         </div>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import SafeMarkdown from './SafeMarkdown'
+import Icon from './ui/Icon'
 import { api } from '../api'
 import { ACTIVE_EXAM_SLUG } from '../state/bank'
 import type { ExplainResponse } from '../types'
@@ -47,7 +48,7 @@ export default function ExplainBlock({
     return (
       <div className="explain-block">
         <div className="explain-head">
-          <span className="explain-icon">🧠</span>
+          <span className="explain-icon"><Icon name="idea" size={16} /></span>
           <span className="explain-title">Готовим разбор…</span>
         </div>
         <div className="progress indeterminate">
@@ -67,7 +68,7 @@ export default function ExplainBlock({
   return (
     <div className="explain-block">
       <div className="explain-head">
-        <span className="explain-icon">🧠</span>
+        <span className="explain-icon"><Icon name="idea" size={16} /></span>
         <span className="explain-title">Разбор задачи</span>
         <span className="chip chip-muted">
           {data.generation_mode === 'llm' ? 'LLM' : 'extractive'}

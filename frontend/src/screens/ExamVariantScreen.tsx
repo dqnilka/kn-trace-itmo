@@ -233,7 +233,7 @@ export default function ExamVariantScreen({
           </button>
         </div>
         <div className="screen-body narrow centered">
-          <div className="trophy">📝</div>
+          <div className="trophy"></div>
           <h1 className="screen-title">Пробный вариант №{variantId}</h1>
           <p className="screen-subtitle">
             {phase.tasks.length} вопросов · охват {chaptersOfTasks.size} разделов
@@ -281,7 +281,7 @@ export default function ExamVariantScreen({
     return (
       <div className="screen">
         <div className="screen-body narrow centered">
-          <div className="trophy">{passed ? '🏆' : '📚'}</div>
+          <div className="trophy">{passed ? '' : ''}</div>
           <h1 className="screen-title">
             {passed ? 'Сдано!' : 'Чуть-чуть не хватило'}
           </h1>

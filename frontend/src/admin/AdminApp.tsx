@@ -49,7 +49,7 @@ export default function AdminApp() {
     <div className="admin-shell">
       <header className="admin-header">
         <div className="brand">
-          <div className="brand-mark">⚙</div>
+          <div className="brand-mark"></div>
           <div>
             <h1>Admin · K2-18</h1>
             <div className="subtitle">CRUD экзаменов, пайплайн, публикация</div>
@@ -265,7 +265,7 @@ function AdminExamPanel({
               rel="noreferrer noopener"
               title="k2-18 viewer (новая вкладка)"
             >
-              📊 граф
+               граф
             </a>
             <a
               className="link-button"

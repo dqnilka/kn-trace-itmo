@@ -5,7 +5,7 @@ const CONTENT: Record<
   { emoji: string; title: string; bullets: string[] }
 > = {
   theory: {
-    emoji: '📚',
+    emoji: '',
     title: 'Раздел «Теория»',
     bullets: [
       '13 глав базового экзамена ФСФР',
@@ -15,7 +15,7 @@ const CONTENT: Record<
     ],
   },
   other: {
-    emoji: '🚧',
+    emoji: '',
     title: 'В разработке',
     bullets: ['Эта часть приложения скоро появится.'],
   },

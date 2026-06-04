@@ -1,23 +1,24 @@
 import { useState } from 'react'
 import Logo from '../components/Logo'
+import Icon, { type IconName } from '../components/ui/Icon'
 
 /**
  * Короткий онбординг (3 шага) после регистрации — мягкий вход перед входным
  * тестом. Без сбора данных: только знакомство с продуктом и как он работает.
  */
-const STEPS = [
+const STEPS: { icon: IconName; title: string; text: string }[] = [
   {
-    icon: '👋',
+    icon: 'target',
     title: 'Добро пожаловать в FinUplift',
     text: 'Адаптивный тренажёр для подготовки к экзамену ФСФР. Доведём до проходного балла по твоим слабым темам.',
   },
   {
-    icon: '🧭',
+    icon: 'layers',
     title: 'Как это работает',
     text: 'Короткий входной тест покажет пробелы. Дальше — занятия: сжатая теория под конкретные задания, потом практика с разбором ошибок.',
   },
   {
-    icon: '🎯',
+    icon: 'check',
     title: 'Учим то, что нужно',
     text: 'Алгоритм сам выбирает темы с наибольшими пробелами и отслеживает прогресс. Начнём с короткого теста — это займёт пару минут.',
   },
@@ -36,7 +37,7 @@ export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
             <Logo size={48} />
           </div>
           <div className="onb-icon" aria-hidden="true">
-            {s.icon}
+            <Icon name={s.icon} size={26} />
           </div>
           <h1 className="screen-title" style={{ textAlign: 'center' }}>
             {s.title}

@@ -107,9 +107,6 @@ export default function QuestionCard({
       <header className="qcard-head">
         <div className="qcard-progress">
           Вопрос {index + 1} из {total}
-          {isAdmin && task.task_number ? (
-            <span className="qcard-code"> · {task.task_number}</span>
-          ) : null}
         </div>
         <div className="qcard-meta">
           {themeName && <span className="chip chip-muted">{themeName}</span>}
@@ -125,7 +122,7 @@ export default function QuestionCard({
       <div className="qcard-body">
         {isAdmin && !revealed && (
           <div className="admin-peek-badge" title="Виден только администратору">
-            🔎 режим проверки · верный вариант отмечен
+            Режим проверки · верный вариант отмечен
           </div>
         )}
         <p className="qcard-text">{task.task_text}</p>
@@ -168,7 +165,7 @@ export default function QuestionCard({
             </div>
             {enableExplain && picked !== correctLabel && !wantExplain && (
               <button className="pill pill-ghost" onClick={() => setWantExplain(true)}>
-                🧠 Разбор
+                Разбор
               </button>
             )}
             <button className="pill pill-primary" onClick={proceed}>
