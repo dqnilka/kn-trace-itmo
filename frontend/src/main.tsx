@@ -4,7 +4,6 @@ import App from './App'
 import AdminApp from './admin/AdminApp'
 import ErrorBoundary from './components/ErrorBoundary'
 import './styles.css'
-import './styles-flow.css'
 
 // Lightweight in-app routing: /admin (or ?admin=1) → admin shell, anything
 // else → user-facing trainer.

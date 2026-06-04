@@ -207,31 +207,6 @@ export function pickWeakThemes(
   return scored.slice(0, count).map((x) => x.t)
 }
 
-/**
- * Сколько глав имеют mastery ≥ threshold? Используется для гейта пробного
- * экзамена (узел m1 диаграммы: «70%+ mastery по 10 главам»).
- */
-export function chaptersReady(
-  store: MasteryStore,
-  bank: { chapters: { id: number }[]; themes: BankTheme[] },
-  threshold: number = 0.7,
-): { ready: number; total: number } {
-  const byChapter = new Map<number, BankTheme[]>()
-  for (const t of bank.themes) {
-    if (!byChapter.has(t.chapter_id)) byChapter.set(t.chapter_id, [])
-    byChapter.get(t.chapter_id)!.push(t)
-  }
-  let ready = 0
-  for (const c of bank.chapters) {
-    const themes = byChapter.get(c.id) ?? []
-    const s = chapterScore(store, themes)
-    if (s.confidence === 'ok' && s.pct != null && s.pct >= threshold) {
-      ready += 1
-    }
-  }
-  return { ready, total: bank.chapters.length }
-}
-
 // === Exam variants history ===
 
 export function loadVariants(): ExamVariantSummary[] {

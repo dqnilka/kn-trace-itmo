@@ -7,7 +7,6 @@ import {
   OVERALL_MIN_CONFIDENT,
   THEME_MIN_CONFIDENT,
   chapterScore,
-  chaptersReady,
   loadMastery,
   loadVariants,
   overallScore,
@@ -59,8 +58,6 @@ export default function DashboardScreen({
   onLogout,
   onRetakeEntrance,
   hasEntranceResults,
-  onFinalStretch,
-  onRealExam,
 }: {
   user: UserState
   onAdaptive: () => void
@@ -70,8 +67,6 @@ export default function DashboardScreen({
   onLogout: () => void
   onRetakeEntrance: () => void
   hasEntranceResults: boolean
-  onFinalStretch: () => void
-  onRealExam: () => void
 }) {
   const [tab, setTab] = useState<Tab>('topics')
   const [bank, setBank] = useState<ExamBank | null>(null)
@@ -84,30 +79,21 @@ export default function DashboardScreen({
   const [openChapters, setOpenChapters] = useState<Record<number, boolean>>({})
 
   useEffect(() => {
-    const ctrl = new AbortController()
     loadBank()
-      .then((b) => {
-        if (!ctrl.signal.aborted) setBank(b)
-      })
-      .catch(() => {
-        if (!ctrl.signal.aborted) setBank(null)
-      })
-    return () => ctrl.abort()
+      .then(setBank)
+      .catch(() => setBank(null))
   }, [])
 
   // Fetch BKT-driven mastery from the backend (calibrated ML model, not the
   // raw correct/asked counters in localStorage). Re-fetched on window focus
   // so the dashboard reflects answers given in another tab / practice.
   useEffect(() => {
-    let activeCtrl: AbortController | null = null
+    let cancelled = false
     const fetchBkt = () => {
-      activeCtrl?.abort()
-      const ctrl = new AbortController()
-      activeCtrl = ctrl
       api
-        .mastery(ACTIVE_EXAM_SLUG, user.id, { signal: ctrl.signal })
+        .mastery(ACTIVE_EXAM_SLUG, user.id)
         .then((r) => {
-          if (!ctrl.signal.aborted) setBktMastery(r)
+          if (!cancelled) setBktMastery(r)
         })
         .catch(() => {
           /* server mastery is best-effort */
@@ -116,7 +102,7 @@ export default function DashboardScreen({
     fetchBkt()
     window.addEventListener('focus', fetchBkt)
     return () => {
-      activeCtrl?.abort()
+      cancelled = true
       window.removeEventListener('focus', fetchBkt)
     }
   }, [user.id])
@@ -195,12 +181,6 @@ export default function DashboardScreen({
           <h1 className="page-title">Тренажёр</h1>
         </div>
         <div className="page-actions">
-          <button className="link-button" onClick={onFinalStretch}>
-            🏁 финишная прямая
-          </button>
-          <button className="link-button" onClick={onRealExam}>
-            🎓 материалы экзамена
-          </button>
           <button className="link-button" onClick={onRetakeEntrance}>
             {hasEntranceResults ? 'пройти входной заново' : 'пройти входной'}
           </button>
@@ -264,18 +244,8 @@ export default function DashboardScreen({
             'Шкала 0-100, где ≥80 — условно сдашь экзамен. Точность растёт с числом ответов.'
           }
           value={
-            // Если confidence='ok' — берём server-side BKT, при его отсутствии
-            // (новый user_id / упавший /event) fallback на локальный pct.
-            // Раньше требовалось ОБА условия — после моего ротайшна user_id
-            // на crypto-random server-side mastery обнулилась и поле показывало
-            // «?» при 35+ накопленных локальных ответах. Локальный fallback
-            // решает эту тиринг-проблему.
-            overall.confidence === 'ok'
-              ? bktMastery?.overall != null
-                ? knowledgeLevel(bktMastery.overall)
-                : overall.pct != null
-                  ? knowledgeLevel(overall.pct)
-                  : null
+            overall.confidence === 'ok' && bktMastery?.overall != null
+              ? knowledgeLevel(bktMastery.overall)
               : null
           }
           confidence={overall.confidence}
@@ -295,17 +265,11 @@ export default function DashboardScreen({
             'Сколько тем уже было задействовано — хотя бы один ответ. ' +
             'Хорошее покрытие важно для финального уровня знаний.'
           }
-          // Пока bank не загрузился, totalThemes=0 → не показываем «X из 0».
-          // Показываем placeholder «загрузка…» и серое кольцо до резолва /bank.
-          value={totalThemes > 0 ? touchedThemes : null}
+          value={touchedThemes}
           confidence={totalThemes > 0 ? 'ok' : 'empty'}
           maxValue={totalThemes}
           color="#0ea5e9"
-          sub={
-            totalThemes > 0
-              ? `${touchedThemes} из ${totalThemes}`
-              : 'загружаем структуру курса…'
-          }
+          sub={`${touchedThemes} из ${totalThemes}`}
         />
         <StatCard
           label="Пробные варианты"
@@ -314,7 +278,7 @@ export default function DashboardScreen({
             'Помогает понять реальную готовность.'
           }
           value={
-            variants.length > 0 && variants[variants.length - 1].total > 0
+            variants.length > 0
               ? Math.round(
                   (variants[variants.length - 1].correct /
                     variants[variants.length - 1].total) *
@@ -322,13 +286,9 @@ export default function DashboardScreen({
                 )
               : null
           }
-          confidence={
-            variants.length > 0 && variants[variants.length - 1].total > 0
-              ? 'ok'
-              : 'empty'
-          }
+          confidence={variants.length > 0 ? 'ok' : 'empty'}
           color={
-            variants.length > 0 && variants[variants.length - 1].total > 0
+            variants.length > 0
               ? pctColor(
                   variants[variants.length - 1].correct /
                     variants[variants.length - 1].total,
@@ -405,11 +365,7 @@ export default function DashboardScreen({
       )}
 
       {tab === 'variants' && bank && index && (
-        <VariantsTab
-          variants={variants}
-          onPick={onExamVariant}
-          ready={chaptersReady(mastery, bank, 0.7)}
-        />
+        <VariantsTab variants={variants} onPick={onExamVariant} />
       )}
     </div>
   )
@@ -537,81 +493,41 @@ function plural(n: number, one: string, few: string, many: string): string {
 function VariantsTab({
   variants,
   onPick,
-  ready,
 }: {
   variants: ExamVariantSummary[]
   onPick: (id: number) => void
-  ready: { ready: number; total: number }
 }) {
   const byId = new Map<number, ExamVariantSummary>()
   for (const v of variants) byId.set(v.variant_id, v)
-  // Узел m1 диаграммы: пробный экзамен открывается, когда минимум 10 глав
-  // имеют mastery ≥ 70%.
-  const NEEDED = 10
-  const unlocked = ready.ready >= NEEDED
 
   return (
-    <>
-      <div className={`mock-lock-banner ${unlocked ? 'unlocked' : ''}`}>
-        <div className="mock-lock-emoji">{unlocked ? '🔓' : '🔒'}</div>
-        <div className="mock-lock-body">
-          <div className="mock-lock-title">
-            {unlocked
-              ? 'Пробный экзамен открыт'
-              : `Заблокировано. Сейчас: ${ready.ready} из ${NEEDED}`}
-          </div>
-          <div className="mock-lock-sub">
-            {unlocked
-              ? `Достигнут порог 70%+ mastery по ${ready.ready} главам. Можно тренироваться на полном варианте.`
-              : `Чтобы открыть mock, нужно подтянуть до 70%+ mastery хотя бы 10 глав из ${ready.total}. Поработай с разделом «Темы» — система подскажет, что слабее всего.`}
-          </div>
-          <div className="mock-lock-progress">
-            <div
-              className="mock-lock-progress-bar"
-              style={{
-                width: `${Math.min(100, (ready.ready / NEEDED) * 100)}%`,
-              }}
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="variants-grid">
-        {VARIANTS.map((v) => {
-          const past = byId.get(v.id)
-          return (
-            <div
-              key={v.id}
-              className={`variant-card ${unlocked ? '' : 'locked'}`}
-            >
-              <div className="variant-title">{v.title}</div>
-              <div className="variant-meta">
-                <span className="chip chip-soft">{v.difficulty}</span>
-                {!unlocked && <span className="chip chip-muted">🔒 закрыт</span>}
-                {past && past.total > 0 && (
-                  <span
-                    className={`chip ${past.correct / past.total >= 0.8 ? 'chip-ok' : 'chip-muted'}`}
-                  >
-                    результат {Math.round((past.correct / past.total) * 100)}%
-                  </span>
-                )}
-              </div>
-              <p className="variant-desc">
-                50 вопросов, обратный таймер 60 минут, без подсказок. После
-                завершения — разбор ошибок по разделам и план доработки.
-              </p>
-              <button
-                className="pill pill-cta"
-                disabled={!unlocked}
-                onClick={() => unlocked && onPick(v.id)}
-              >
-                {past ? 'Пересдать' : 'Выполнить'}
-              </button>
+    <div className="variants-grid">
+      {VARIANTS.map((v) => {
+        const past = byId.get(v.id)
+        return (
+          <div key={v.id} className="variant-card">
+            <div className="variant-title">{v.title}</div>
+            <div className="variant-meta">
+              <span className="chip chip-soft">{v.difficulty}</span>
+              {past && (
+                <span
+                  className={`chip ${past.correct / past.total >= 0.8 ? 'chip-ok' : 'chip-muted'}`}
+                >
+                  результат {Math.round((past.correct / past.total) * 100)}%
+                </span>
+              )}
             </div>
-          )
-        })}
-      </div>
-    </>
+            <p className="variant-desc">
+              50 вопросов, без подсказок. После завершения — разбор ошибок по
+              разделам.
+            </p>
+            <button className="pill pill-cta" onClick={() => onPick(v.id)}>
+              {past ? 'Пересдать' : 'Выполнить'}
+            </button>
+          </div>
+        )
+      })}
+    </div>
   )
 }
 
