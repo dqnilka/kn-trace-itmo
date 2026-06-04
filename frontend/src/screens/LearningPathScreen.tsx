@@ -3,6 +3,8 @@ import SafeMarkdown from '../components/SafeMarkdown'
 import { api } from '../api'
 import QuestionCard from '../components/QuestionCard'
 import MasteryRings, { type RingDatum } from '../components/MasteryRings'
+import Icon from '../components/ui/Icon'
+import { TheorySkeleton } from '../components/ui/Skeleton'
 import { ACTIVE_EXAM_SLUG, buildIndex, loadBank } from '../state/bank'
 import {
   bumpMastery,
@@ -328,13 +330,11 @@ export default function LearningPathScreen({
             </header>
             <div className="learn-body">
               {loading && (
-                <div className="theory-loading">
-                  <span className="theory-loading-dot" />
-                  <span className="theory-loading-dot" />
-                  <span className="theory-loading-dot" />
-                  <span className="meta">
-                    Готовим объяснение темы по учебнику… ~5 сек
-                  </span>
+                <div className="theory-loading-wrap">
+                  <div className="theory-loading-note">
+                    Готовим объяснение темы по учебнику — обычно несколько секунд
+                  </div>
+                  <TheorySkeleton />
                 </div>
               )}
               {phase.theoryError === 'empty' && (
@@ -438,7 +438,8 @@ function PathProgress({
               <div className="path-step-name">{u.theme.name}</div>
               {i === curIdx && (
                 <div className="path-step-sub">
-                  {curStep === 'theory' ? '📖 теория' : '✏ практика'}
+                  <Icon name={curStep === 'theory' ? 'theory' : 'practice'} size={13} />
+                  {curStep === 'theory' ? 'теория' : 'практика'}
                 </div>
               )}
             </div>

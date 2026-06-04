@@ -1,7 +1,6 @@
 /**
- * Логотип — сдержанный профессиональный знак: скруглённый квадрат с мотивом
- * роста знаний (восходящие ступени + точка-цель). Без «маскота», в тон
- * серьёзного продукта.
+ * Логотип FinUplift — знак «подъёма»: восходящие столбцы и стрелка вверх.
+ * Сдержанно и премиально, в тон острому дизайн-языку.
  */
 export default function Logo({ size = 36 }: { size?: number }) {
   return (
@@ -11,21 +10,27 @@ export default function Logo({ size = 36 }: { size?: number }) {
       viewBox="0 0 64 64"
       fill="none"
       role="img"
-      aria-label="Логотип"
+      aria-label="FinUplift"
     >
-      <defs>
-        <linearGradient id="lg-g" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#d8784f" />
-          <stop offset="1" stopColor="#c96442" />
-        </linearGradient>
-      </defs>
-      <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#lg-g)" />
-      {/* восходящие ступени */}
-      <rect x="16" y="38" width="8" height="10" rx="2" fill="#ffffff" opacity="0.55" />
-      <rect x="28" y="30" width="8" height="18" rx="2" fill="#ffffff" opacity="0.78" />
-      <rect x="40" y="22" width="8" height="26" rx="2" fill="#ffffff" />
-      {/* точка-цель */}
-      <circle cx="44" cy="16" r="4" fill="#ffffff" />
+      <rect x="2" y="2" width="60" height="60" rx="8" fill="#1c1b1a" />
+      <rect x="14" y="40" width="7" height="10" fill="#ffffff" opacity="0.5" />
+      <rect x="25" y="33" width="7" height="17" fill="#ffffff" opacity="0.72" />
+      <rect x="36" y="24" width="7" height="26" fill="#c96442" />
+      {/* стрелка-подъём */}
+      <path
+        d="M18 33 L39 18"
+        stroke="#c96442"
+        strokeWidth="3.4"
+        strokeLinecap="round"
+      />
+      <path
+        d="M31 17 L40 17 L40 26"
+        stroke="#c96442"
+        strokeWidth="3.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
     </svg>
   )
 }

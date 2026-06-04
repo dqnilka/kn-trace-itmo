@@ -79,7 +79,7 @@ export default function TheoryScreen({
         </div>
         <div className="screen-body narrow">
           <div className="meta" style={{ marginBottom: 14 }}>
-            ✍️ Составляем разбор под задания темы — обычно ~5 секунд…
+            Составляем разбор под задания темы — обычно несколько секунд
           </div>
           <article className="theory-article">
             <TheorySkeleton />
@@ -99,7 +99,7 @@ export default function TheoryScreen({
           ← к темам
         </button>
         <div className="meta">
-          📖 Теория · {data.chapter_num ? `Глава ${data.chapter_num}` : 'Раздел'}
+          Теория · {data.chapter_num ? `Глава ${data.chapter_num}` : 'Раздел'}
           {data.summary_cached && (
             <span className="chip chip-muted" style={{ marginLeft: 8 }}>
               кэш
@@ -177,7 +177,7 @@ export default function TheoryScreen({
               onToggle={(e) => setShowRaw((e.target as HTMLDetailsElement).open)}
             >
               <summary>
-                📄 Показать оригинальные фрагменты учебника ({data.sections.length})
+                Показать оригинальные фрагменты учебника ({data.sections.length})
               </summary>
               <div className="theory-raw-body">
                 {data.sections.map((s, i) => (
@@ -237,7 +237,7 @@ function ConceptCard({
       )}
       {concept.prereq_count > 0 && (
         <div className="concept-grid-prereq">
-          📚 {concept.prereq_count} prereq{concept.prereq_count === 1 ? '' : 's'}
+          {concept.prereq_count} prereq{concept.prereq_count === 1 ? '' : 's'}
         </div>
       )}
     </div>

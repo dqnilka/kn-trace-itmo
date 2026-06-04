@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../api'
 import InfoTip from '../components/InfoTip'
+import Icon from '../components/ui/Icon'
 import { ACTIVE_EXAM_SLUG, buildIndex, loadBank } from '../state/bank'
 import {
   CHAPTER_MIN_CONFIDENT,
@@ -202,7 +203,7 @@ export default function DashboardScreen({
 
       {!hasEntranceResults && (
         <div className="banner-warn">
-          <div className="banner-emoji">⚠️</div>
+          <div className="banner-emoji"><Icon name="alert" size={20} /></div>
           <div className="banner-body">
             <strong>Ты пропустил входной тест.</strong> Без него тренажёр не
             знает, какие темы у тебя слабые — рекомендации будут стартовать с
@@ -217,7 +218,7 @@ export default function DashboardScreen({
 
       {/* Hero CTA — главный путь обучения */}
       <div className="hero-card">
-        <div className="hero-emoji">🎯</div>
+        <div className="hero-emoji"><Icon name="target" size={30} /></div>
         <div className="hero-body">
           <div className="hero-eyebrow">Сегодняшнее занятие</div>
           <h2 className="hero-title">
@@ -329,7 +330,7 @@ export default function DashboardScreen({
       {tab === 'topics' && (
         <div className="topics-tab">
           <div className="search-box">
-            <span className="search-icon">⌕</span>
+            <span className="search-icon"><Icon name="search" size={17} /></span>
             <input
               type="text"
               value={search}
@@ -467,7 +468,7 @@ function ChapterCard({
                     Решать
                   </button>
                   <button className="pill pill-ghost" onClick={() => onTheory(t.code)}>
-                    📖 Изучать
+                    Изучать
                   </button>
                 </div>
               </div>
