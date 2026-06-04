@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import HTMLResponse
 
@@ -205,6 +207,7 @@ async def get_theme_article(
     slug: str,
     code: str,
     raw: bool = False,
+    task_ids: str | None = None,
     exams: ExamRegistry = Depends(get_exams),
     graphs: GraphRegistry = Depends(get_graphs),
     ctx: AppContext = Depends(get_ctx),
@@ -214,6 +217,9 @@ async def get_theme_article(
     Default: returns LLM-clean ``summary_md`` (~250 words, no page artifacts).
     With ``?raw=1``: returns raw MD sections from ``theme_sections.json``
     (useful for debugging the linker output).
+    With ``?task_ids=1,2,3``: grounds the summary on EXACTLY these tasks (the
+    ones the student is about to see in a lesson), so the theory prepares them
+    for those specific questions rather than the theme in general.
     """
     exam = _get_exam_or_404(exams, slug)
     bank = load_bank(exam)
@@ -269,12 +275,30 @@ async def get_theme_article(
     graph = graphs.get(exam)
     theme_tasks = [t for t in bank.get("tasks", []) if str(t.get("theme_code")) == str(code)]
     task_count = len(theme_tasks)
-    task_ids = [int(t["id"]) for t in theme_tasks if t.get("id") is not None]
 
-    # Concepts ranked by how strongly THIS theme's tasks test them
-    # (TESTS_CONCEPT). Falls back to BELONGS_TO_THEME when task links are absent
-    # so the block is never empty for a populated theme.
-    ranked_concept_ids = graph.tested_concepts_for_tasks(task_ids, top_k=30)
+    # Optional focus: ground on EXACTLY the tasks the lesson will show.
+    focus_ids: list[int] = []
+    if task_ids:
+        for part in task_ids.split(","):
+            part = part.strip()
+            if part.isdigit():
+                focus_ids.append(int(part))
+    cache_variant: str | None = None
+    if focus_ids:
+        by_id = {int(t["id"]): t for t in theme_tasks if t.get("id") is not None}
+        focus_tasks = [by_id[i] for i in focus_ids if i in by_id]
+        if focus_tasks:
+            theme_tasks = focus_tasks  # narrows ranking + sample to the shown tasks
+            cache_variant = hashlib.sha1(
+                ",".join(str(i) for i in focus_ids).encode()
+            ).hexdigest()[:10]
+
+    grounding_ids = [int(t["id"]) for t in theme_tasks if t.get("id") is not None]
+
+    # Concepts ranked by how strongly THESE tasks test them (TESTS_CONCEPT).
+    # Falls back to BELONGS_TO_THEME when task links are absent so the block is
+    # never empty for a populated theme.
+    ranked_concept_ids = graph.tested_concepts_for_tasks(grounding_ids, top_k=30)
     if not ranked_concept_ids:
         ranked_concept_ids = graph.concepts_by_theme.get(str(code), [])[:30]
 
@@ -329,6 +353,7 @@ async def get_theme_article(
                 llm_generator=ctx.generator,
                 tasks=task_sample,
                 concepts=concept_sample,
+                variant=cache_variant,
             )
             summary_md = res.summary_md
             cached = res.cached

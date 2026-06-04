@@ -55,9 +55,12 @@ class ThemeSummary:
     generated_at: float
 
 
-def _cache_paths(exam: Exam, theme_code: str) -> tuple[Path, Path]:
+def _cache_paths(
+    exam: Exam, theme_code: str, variant: str | None = None
+) -> tuple[Path, Path]:
     base = exam.root / "theme_summaries"
-    return base / f"{theme_code}.md", base / f"{theme_code}.meta.json"
+    stem = f"{theme_code}__{variant}" if variant else theme_code
+    return base / f"{stem}.md", base / f"{stem}.meta.json"
 
 
 def _content_hash(
@@ -69,7 +72,7 @@ def _content_hash(
     h = hashlib.sha256()
     # Prompt-version tag: bump when the grounding strategy changes so stale
     # task-agnostic summaries are regenerated rather than served from cache.
-    h.update(b"v2-task-grounded\n")
+    h.update(b"v3-task-grounded-clean\n")
     h.update(theme_name.encode("utf-8"))
     for s in sections:
         h.update((s.get("section_path", "") + "\n" + s.get("excerpt", "")).encode("utf-8"))
@@ -80,8 +83,10 @@ def _content_hash(
     return h.hexdigest()[:16]
 
 
-def get_cached(exam: Exam, theme_code: str, hash_: str) -> ThemeSummary | None:
-    md_path, meta_path = _cache_paths(exam, theme_code)
+def get_cached(
+    exam: Exam, theme_code: str, hash_: str, variant: str | None = None
+) -> ThemeSummary | None:
+    md_path, meta_path = _cache_paths(exam, theme_code, variant)
     if not md_path.exists() or not meta_path.exists():
         return None
     try:
@@ -102,8 +107,9 @@ def save_cache(
     theme_code: str,
     summary_md: str,
     hash_: str,
+    variant: str | None = None,
 ) -> None:
-    md_path, meta_path = _cache_paths(exam, theme_code)
+    md_path, meta_path = _cache_paths(exam, theme_code, variant)
     md_path.parent.mkdir(parents=True, exist_ok=True)
     md_path.write_text(summary_md, encoding="utf-8")
     meta_path.write_text(
@@ -114,6 +120,31 @@ def save_cache(
         ),
         encoding="utf-8",
     )
+
+
+import re
+
+# Textbook artifacts that make raw excerpts look "сырыми" — strip before the LLM
+# sees them so the summary is built from clean text.
+_PAGE_MARKER_RE = re.compile(r"\{\s*\d+\s*\}-*")          # {378}--------
+_SECTION_NUM_RE = re.compile(r"(?m)^\s*\d+(?:\.\d+)+\.?\s*")  # leading "16.5.2 "
+_SPACED_CAPS_RE = re.compile(r"\b([А-ЯЁ])\s+(?=[А-ЯЁ]\b)")  # "РАЗДЕЛ ТРЕТИ Й"
+_MULTISPACE_RE = re.compile(r"[ \t]{2,}")
+_MULTINL_RE = re.compile(r"\n{3,}")
+
+
+def _clean_excerpt(text: str) -> str:
+    """Remove page markers / section numbers / hyphenation noise from a raw
+    textbook excerpt. Conservative — only strips well-known artifacts."""
+    if not text:
+        return ""
+    t = _PAGE_MARKER_RE.sub(" ", text)
+    t = t.replace("-\n", "")          # de-hyphenate line breaks
+    t = _SECTION_NUM_RE.sub("", t)
+    t = _SPACED_CAPS_RE.sub(r"\1", t)
+    t = _MULTISPACE_RE.sub(" ", t)
+    t = _MULTINL_RE.sub("\n\n", t)
+    return t.strip()
 
 
 def _user_prompt(
@@ -136,7 +167,10 @@ def _user_prompt(
                 parts.append(f"- **{term}** — {definition}" if definition else f"- **{term}**")
 
     if tasks:
-        parts.append("\nПримеры заданий темы (что реально спрашивают на экзамене):\n")
+        parts.append(
+            "\nЗАДАНИЯ, которые студент увидит СРАЗУ ПОСЛЕ этой теории — "
+            "подготовь именно к ним:\n"
+        )
         for i, t in enumerate(tasks, start=1):
             q = str(t.get("task_text") or "").strip()[:500]
             correct = str(t.get("correct") or "").strip()[:300]
@@ -146,10 +180,10 @@ def _user_prompt(
             parts.append(block)
 
     if sections:
-        parts.append("\nСекции учебника:\n")
+        parts.append("\nСекции учебника (сырой источник, нужна чистка):\n")
         for i, s in enumerate(sections, start=1):
             path = s.get("section_path") or "—"
-            body = (s.get("excerpt") or s.get("snippet") or "").strip()
+            body = _clean_excerpt((s.get("excerpt") or s.get("snippet") or ""))
             body = body[:3000]  # safety cap per section
             parts.append(f"[Источник {i} · {path}]\n{body}\n")
     return "\n".join(parts)
@@ -165,6 +199,7 @@ def generate_summary(
     llm_generator,
     tasks: list[dict] | None = None,
     concepts: list[dict] | None = None,
+    variant: str | None = None,
 ) -> ThemeSummary:
     """Generate a clean theory summary grounded on the theme's actual tasks.
 
@@ -172,17 +207,18 @@ def generate_summary(
     the ``TESTS_CONCEPT`` signal), each ``{term, definition}``. ``tasks`` are a
     small sample of the real questions, each ``{task_text, correct}``. Together
     they steer the summary toward exactly what the student will be asked — see
-    ``get_theme_article``.
+    ``get_theme_article``. ``variant`` keys the cache for a specific task subset
+    (a lesson grounded on exactly the tasks it will show).
     """
     hash_ = _content_hash(theme_name, sections, tasks, concepts)
-    cached = get_cached(exam, theme_code, hash_)
+    cached = get_cached(exam, theme_code, hash_, variant)
     if cached is not None:
         return cached
 
     # Nothing to ground on at all → honest placeholder.
     if not sections and not concepts and not tasks:
         out = "В учебнике пока нет материала по этой теме."
-        save_cache(exam, theme_code, out, hash_)
+        save_cache(exam, theme_code, out, hash_, variant)
         return ThemeSummary(summary_md=out, cached=False, generated_at=time.time())
 
     settings = get_settings()
@@ -208,7 +244,7 @@ def generate_summary(
     md = (resp.choices[0].message.content or "").strip()
     if not md:
         md = "Не удалось собрать объяснение по этой теме."
-    save_cache(exam, theme_code, md, hash_)
+    save_cache(exam, theme_code, md, hash_, variant)
     logger.info(
         "Theme summary built for %s/%s in %.1fs (%d chars)",
         exam.slug, theme_code, time.time() - started, len(md),
