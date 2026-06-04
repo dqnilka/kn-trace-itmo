@@ -50,13 +50,13 @@ class TestReportGenerator:
             explanation=explanation, summary=summary,
             exam_slug="test-exam", mode=mode,
         )
-        assert "# Quality Evaluation Report" in report
-        assert "## Summary" in report
+        assert "# Отчёт оценки качества" in report
+        assert "## Сводка" in report
         assert "## BKT" in report
         assert "## FSRS" in report
-        assert "## Recommender" in report
-        assert "## Explanation" in report
-        assert "## Theme Summary" in report
+        assert "## Рекомендатель" in report
+        assert "## Объяснение" in report
+        assert "## Сводка по темам" in report
         assert "PASS" in report or "WARN" in report or "FAIL" in report
 
     def test_report_with_only_bkt(self):
@@ -91,8 +91,8 @@ class TestReportGenerator:
 
     def test_report_empty(self):
         report = generate_report(exam_slug="empty")
-        assert "# Quality Evaluation Report" in report
-        assert "## Summary" in report
+        assert "# Отчёт оценки качества" in report
+        assert "## Сводка" in report
 
     def test_report_has_status_icons(self, fixtures_dir: Path):
         bkt, fsrs, rec, explanation, summary, mode = run_autonomous(fixtures_dir)

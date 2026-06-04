@@ -81,22 +81,22 @@ def _val_str(v: float | None) -> str:
 def build_bkt_results(m: BKTMetrics) -> list[MetricResult]:
     return [
         MetricResult(
-            name="Monotonicity (correct)",
+            name="Монотонность (верные)",
             value=m.monotonicity_correct,
             good_threshold=0.001,
             critical_threshold=0.0,
             comparison="gt",
-            interpretation="P(L) should increase after correct answers. "
-            f"Average ΔP(L) = {m.monotonicity_correct:+.6f}",
+            interpretation="P(L) должен расти после правильных ответов. "
+            f"Среднее ΔP(L) = {m.monotonicity_correct:+.6f}",
         ),
         MetricResult(
-            name="Monotonicity (incorrect)",
+            name="Монотонность (неверные)",
             value=m.monotonicity_incorrect,
             good_threshold=-0.001,
             critical_threshold=0.0,
             comparison="lt",
-            interpretation="P(L) should decrease after incorrect answers. "
-            f"Average ΔP(L) = {m.monotonicity_incorrect:+.6f}",
+            interpretation="P(L) должен падать после ошибок. "
+            f"Среднее ΔP(L) = {m.monotonicity_incorrect:+.6f}",
         ),
         MetricResult(
             name="AUC-ROC",
@@ -104,9 +104,9 @@ def build_bkt_results(m: BKTMetrics) -> list[MetricResult]:
             good_threshold=0.75,
             critical_threshold=0.60,
             comparison="gte",
-            interpretation="AUC ≥ 0.75: BKT is informative. "
-            "0.60–0.75: weak, parameters not calibrated. "
-            "< 0.60: equivalent to random guessing.",
+            interpretation="AUC ≥ 0.75: BKT информативен. "
+            "0.60–0.75: слабый, параметры не калиброваны. "
+            "< 0.60: эквивалент случайному угадыванию.",
         ),
         MetricResult(
             name="Log-Loss",
@@ -114,8 +114,8 @@ def build_bkt_results(m: BKTMetrics) -> list[MetricResult]:
             good_threshold=0.60,
             critical_threshold=0.80,
             comparison="lte",
-            interpretation="Log-Loss < 0.60: good calibration. "
-            "> 0.80: predictions are overconfident or wrong.",
+            interpretation="Log-Loss < 0.60: хорошая калибровка. "
+            "> 0.80: прогнозы излишне уверены или ошибочны.",
         ),
         MetricResult(
             name="RMSE",
@@ -123,8 +123,8 @@ def build_bkt_results(m: BKTMetrics) -> list[MetricResult]:
             good_threshold=0.40,
             critical_threshold=0.60,
             comparison="lte",
-            interpretation="Root Mean Square Error of P(correct) vs actual. "
-            "< 0.40: good. 0.40–0.60: acceptable. > 0.60: poor predictions.",
+            interpretation="Ср.-кв. ошибка P(correct) vs факт. "
+            "< 0.40: хорошо. 0.40–0.60: приемлемо. > 0.60: плохие прогнозы.",
         ),
     ]
 
@@ -132,31 +132,31 @@ def build_bkt_results(m: BKTMetrics) -> list[MetricResult]:
 def build_fsrs_results(m: FSRSMetrics) -> list[MetricResult]:
     return [
         MetricResult(
-            name="Stability monotonicity (correct)",
+            name="Монотонность стабильности (верные)",
             value=m.stability_monotonicity_correct,
             good_threshold=0.001,
             critical_threshold=0.0,
             comparison="gt",
-            interpretation="Memory stability should increase after correct answers. "
-            f"Average ΔS = {m.stability_monotonicity_correct:+.2f}s",
+            interpretation="Стабильность памяти должна расти после правильных ответов. "
+            f"Среднее ΔS = {m.stability_monotonicity_correct:+.2f}s",
         ),
         MetricResult(
-            name="Stability monotonicity (incorrect)",
+            name="Монотонность стабильности (неверные)",
             value=m.stability_monotonicity_incorrect,
             good_threshold=-0.001,
             critical_threshold=0.0,
             comparison="lt",
-            interpretation="Memory stability should decrease after incorrect answers. "
-            f"Average ΔS = {m.stability_monotonicity_incorrect:+.2f}s",
+            interpretation="Стабильность памяти должна падать после ошибок. "
+            f"Среднее ΔS = {m.stability_monotonicity_incorrect:+.2f}s",
         ),
         MetricResult(
-            name="Calibration ECE",
+            name="Калибровка ECE",
             value=m.calibration_ece,
             good_threshold=0.05,
             critical_threshold=0.10,
             comparison="lte",
-            interpretation="ECE < 0.05: excellent calibration. "
-            "0.05–0.10: acceptable. > 0.10: FSRS constants need calibration.",
+            interpretation="ECE < 0.05: отличная калибровка. "
+            "0.05–0.10: приемлемо. > 0.10: константы FSRS требуют калибровки.",
         ),
     ]
 
@@ -164,13 +164,13 @@ def build_fsrs_results(m: FSRSMetrics) -> list[MetricResult]:
 def build_recommender_results(m: RecommenderMetrics) -> list[MetricResult]:
     return [
         MetricResult(
-            name="ECE (calibration)",
+            name="Калибровка ECE",
             value=m.ece,
             good_threshold=0.05,
             critical_threshold=0.10,
             comparison="lte",
-            interpretation="ECE < 0.05: expected_p_correct is well-calibrated. "
-            "> 0.10: BKT parameters need fitting.",
+            interpretation="ECE < 0.05: expected_p_correct хорошо калиброван. "
+            "> 0.10: параметры BKT требуют подгонки.",
         ),
         MetricResult(
             name="Brier Score",
@@ -178,8 +178,8 @@ def build_recommender_results(m: RecommenderMetrics) -> list[MetricResult]:
             good_threshold=0.25,
             critical_threshold=0.40,
             comparison="lte",
-            interpretation="Brier Score < 0.25: good predictions. "
-            "> 0.40: predictions are poor.",
+            interpretation="Brier Score < 0.25: хорошие прогнозы. "
+            "> 0.40: прогнозы слабые.",
         ),
         MetricResult(
             name="Hit Rate@5",
@@ -187,8 +187,8 @@ def build_recommender_results(m: RecommenderMetrics) -> list[MetricResult]:
             good_threshold=0.30,
             critical_threshold=0.10,
             comparison="gte",
-            interpretation="Hit Rate ≥ 0.30: recommendations are relevant. "
-            "< 0.10: revise scoring weights or loosen filters.",
+            interpretation="Hit Rate ≥ 0.30: рекомендации релевантны. "
+            "< 0.10: пересмотрите веса или ослабьте фильтры.",
         ),
         MetricResult(
             name="NDCG@5",
@@ -196,25 +196,25 @@ def build_recommender_results(m: RecommenderMetrics) -> list[MetricResult]:
             good_threshold=0.40,
             critical_threshold=0.20,
             comparison="gte",
-            interpretation="NDCG ≥ 0.40: good ranking. "
-            "< 0.20: ranking is nearly random.",
+            interpretation="NDCG ≥ 0.40: хороший ранг. "
+            "< 0.20: ранжирование почти случайное.",
         ),
         MetricResult(
-            name="Topic Coverage",
+            name="Охват тем",
             value=m.topic_coverage,
             good_threshold=0.60,
             critical_threshold=0.30,
             comparison="gte",
-            interpretation="Coverage ≥ 0.60: good diversity. "
-            "< 0.30: recommender is stuck on one topic.",
+            interpretation="Coverage ≥ 0.60: хорошее разнообразие. "
+            "< 0.30: рекомендер застрял на одной теме.",
         ),
         MetricResult(
-            name="Filter consistency",
+            name="Согласованность фильтров",
             value=1.0 if m.filter_consistency_passed else (0.0 if m.filter_consistency_passed is False else None),
             good_threshold=1.0,
             critical_threshold=0.5,
             comparison="gte",
-            interpretation="All recommendations should respect cooldown and mastered filters.",
+            interpretation="Все рекомендации должны учитывать cooldown и фильтры усвоенных.",
         ),
     ]
 
@@ -222,35 +222,35 @@ def build_recommender_results(m: RecommenderMetrics) -> list[MetricResult]:
 def build_explanation_results(m: ExplanationMetrics) -> list[MetricResult]:
     return [
         MetricResult(
-            name="Structure Compliance",
+            name="Соответствие структуре",
             value=m.structure_compliance,
             good_threshold=0.95,
             critical_threshold=0.90,
             comparison="gte",
-            interpretation="≥ 0.95: explanations have all 4 required sections. "
-            "< 0.90: prompt needs stricter formatting instructions.",
+            interpretation="≥ 0.95: объяснения содержат все 4 обязательных раздела. "
+            "< 0.90: промпт требует более строгих инструкций по форматированию.",
         ),
         MetricResult(
-            name="Faithfulness (LLM-judge)",
+            name="Достоверность (LLM-судья)",
             value=float(sum(m.faithfulness_scores) / len(m.faithfulness_scores))
             if m.faithfulness_scores
             else None,
             good_threshold=0.90,
             critical_threshold=0.70,
             comparison="gte",
-            interpretation="≥ 0.90: explanations are grounded in context. "
-            "< 0.70: LLM is hallucinating facts.",
+            interpretation="≥ 0.90: объяснения основаны на контексте. "
+            "< 0.70: LLM галлюцинирует факты.",
         ),
         MetricResult(
-            name="Answer Relevancy (LLM-judge, 1-5)",
+            name="Релевантность ответа (LLM-судья, 1-5)",
             value=float(sum(m.answer_relevancy_scores) / len(m.answer_relevancy_scores))
             if m.answer_relevancy_scores
             else None,
             good_threshold=4.0,
             critical_threshold=3.0,
             comparison="gte",
-            interpretation="≥ 4.0: explanations address the student's error well. "
-            "< 3.0: retrieval or prompt issues.",
+            interpretation="≥ 4.0: объяснения хорошо описывают ошибку студента. "
+            "< 3.0: проблемы с поиском или промптом.",
         ),
     ]
 
@@ -258,33 +258,33 @@ def build_explanation_results(m: ExplanationMetrics) -> list[MetricResult]:
 def build_summary_results(m: SummaryMetrics) -> list[MetricResult]:
     return [
         MetricResult(
-            name="Format Compliance",
+            name="Соответствие формату",
             value=m.format_compliance,
             good_threshold=0.95,
             critical_threshold=0.90,
             comparison="gte",
-            interpretation="≥ 0.95: summaries meet format requirements. "
-            "< 0.90: prompt needs adjustment.",
+            interpretation="≥ 0.95: саммари соответствуют формату. "
+            "< 0.90: промпт требует корректировки.",
         ),
         MetricResult(
-            name="Concept Coverage",
+            name="Охват концепций",
             value=m.concept_coverage,
             good_threshold=0.70,
             critical_threshold=0.50,
             comparison="gte",
-            interpretation="≥ 0.70: summaries cover most key concepts. "
-            "< 0.50: prompt needs to emphasize mentioning all terms.",
+            interpretation="≥ 0.70: саммари покрывают большинство ключевых концепций. "
+            "< 0.50: промпт должен emphasировать упоминание всех терминов.",
         ),
         MetricResult(
-            name="Faithfulness (LLM-judge)",
+            name="Достоверность (LLM-судья)",
             value=float(sum(m.faithfulness_scores) / len(m.faithfulness_scores))
             if m.faithfulness_scores
             else None,
             good_threshold=0.85,
             critical_threshold=0.70,
             comparison="gte",
-            interpretation="≥ 0.85: summaries don't hallucinate. "
-            "< 0.70: summaries contain fabricated facts.",
+            interpretation="≥ 0.85: саммари без галлюцинаций. "
+            "< 0.70: саммари содержат выдуманные факты.",
         ),
     ]
 
@@ -310,8 +310,8 @@ def generate_report(
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
     sections: list[str] = []
-    sections.append("# Quality Evaluation Report\n")
-    sections.append(f"**Date**: {now} | **Exam**: {exam_slug} | **Mode**: {mode}\n")
+    sections.append("# Отчёт оценки качества\n")
+    sections.append(f"**Дата**: {now} | **Экзамен**: {exam_slug} | **Режим**: {mode}\n")
 
     all_components: dict[str, list[MetricResult]] = {}
     if bkt:
@@ -319,11 +319,11 @@ def generate_report(
     if fsrs:
         all_components["FSRS"] = build_fsrs_results(fsrs)
     if recommender:
-        all_components["Recommender"] = build_recommender_results(recommender)
+        all_components["Рекомендатель"] = build_recommender_results(recommender)
     if explanation:
-        all_components["Explanation (RAG)"] = build_explanation_results(explanation)
+        all_components["Объяснение (RAG)"] = build_explanation_results(explanation)
     if summary:
-        all_components["Theme Summary"] = build_summary_results(summary)
+        all_components["Сводка по темам"] = build_summary_results(summary)
 
     summary_rows: list[str] = []
     total_pass = total_warn = total_fail = total_skip = 0
@@ -337,8 +337,8 @@ def generate_report(
             f"| {comp_name} | {len(results)} | {counts['PASS']} | {counts['WARN']} | {counts['FAIL']} | {counts['SKIP']} |"
         )
 
-    sections.append("## Summary\n")
-    sections.append("| Component | Metrics | PASS | WARN | FAIL | SKIP |")
+    sections.append("## Сводка\n")
+    sections.append("| Компонент | Метрик | ПАСС | ПРЕД | ПРОВАЛ | ПРОП |")
     sections.append("|---|---|---|---|---|---|")
     sections.extend(summary_rows)
     sections.append(
@@ -349,7 +349,7 @@ def generate_report(
 
     for comp_name, results in all_components.items():
         sections.append(f"## {comp_name}\n")
-        sections.append("| Metric | Value | Good Threshold | Critical | Status |")
+        sections.append("| Метрика | Значение | Порог (хор.) | Критич. | Статус |")
         sections.append("|---|---|---|---|---|")
         for r in results:
             icon = _status_icon(r.status)
@@ -359,13 +359,13 @@ def generate_report(
                 f"| {r.name} | {_val_str(r.value)} | {good_str} | {crit_str} | {icon} {r.status.value} |"
             )
         sections.append("")
-        sections.append("**Interpretation:**\n")
+        sections.append("**Интерпретация:**\n")
         for r in results:
             sections.append(f"- **{r.name}**: {r.interpretation}")
         sections.append("")
 
     if total_fail > 0:
-        sections.append("## Action Items\n")
+        sections.append("## Действия\n")
         for comp_name, results in all_components.items():
             failed = [r for r in results if r.status == Status.FAIL]
             for r in failed:
@@ -373,9 +373,9 @@ def generate_report(
         sections.append("")
 
     if extra_notes:
-        sections.append(f"## Notes\n\n{extra_notes}\n")
+        sections.append(f"## Заметки\n\n{extra_notes}\n")
 
     sections.append("---")
-    sections.append("*Report generated by evaluation module — kn-trace-itmo*\n")
+    sections.append("*Отчёт создан модулем оценки — kn-trace-itmo*\n")
 
     return "\n".join(sections)

@@ -49,12 +49,17 @@ LLM_API_KEY=your-key uv run python -m evaluation --output evaluation_report.md -
 # Сборка
 docker build -f Dockerfile.eval -t akt-eval .
 
-# Автономный отчёт
+# Автономный отчёт (без LLM)
 docker compose -f docker-compose.eval.yml up eval
 
-# С LLM-judge
-LLM_API_KEY=your-key docker compose -f docker-compose.eval.yml run eval --with-llm
+# С LLM-judge (ключи берутся из .env)
+docker compose -f docker-compose.eval.yml run eval-with-llm
+
+# Произвольные аргументы (например --with-llm)
+docker compose -f docker-compose.eval.yml run eval-shell --with-llm --exam-dir /path/to/exam
 ```
+
+> **Важно:** для LLM-judge используется сервис `eval-with-llm`, а не `eval --with-llm`. Сервис `eval` игнорирует аргументы после `up`.
 
 ### Yandex Cloud
 

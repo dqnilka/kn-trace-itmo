@@ -1,106 +1,111 @@
-# Quality Evaluation Report
+# Отчёт оценки качества
 
-**Date**: 2026-05-31 17:03 UTC | **Exam**: test-exam | **Mode**: autonomous
+**Дата**: 2026-06-01 19:10 UTC | **Экзамен**: test-exam | **Режим**: autonomous+llm-judge+exp-faithfulness-ok+exp-relevancy-ok+sum-faithfulness-ok
 
-## Summary
+## Сводка
 
-| Component | Metrics | PASS | WARN | FAIL | SKIP |
+| Компонент | Метрик | ПАСС | ПРЕД | ПРОВАЛ | ПРОП |
 |---|---|---|---|---|---|
 | BKT | 5 | 2 | 1 | 2 | 0 |
 | FSRS | 3 | 2 | 0 | 1 | 0 |
-| Recommender | 6 | 0 | 0 | 0 | 6 |
-| Explanation (RAG) | 3 | 0 | 0 | 1 | 2 |
-| Theme Summary | 3 | 0 | 0 | 2 | 1 |
-| **Total** | **20** | **4** | **1** | **6** | **9** |
+| Рекомендатель | 6 | 2 | 2 | 2 | 0 |
+| Объяснение (RAG) | 3 | 0 | 0 | 3 | 0 |
+| Сводка по темам | 3 | 0 | 0 | 3 | 0 |
+| **Total** | **20** | **6** | **3** | **11** | **0** |
 
 ## BKT
 
-| Metric | Value | Good Threshold | Critical | Status |
+| Метрика | Значение | Порог (хор.) | Критич. | Статус |
 |---|---|---|---|---|
-| Monotonicity (correct) | 0.1198 | 0.0010 | 0.0000 | ✅ PASS |
-| Monotonicity (incorrect) | -0.1173 | -0.0010 | 0.0000 | ✅ PASS |
+| Монотонность (верные) | 0.1198 | 0.0010 | 0.0000 | ✅ PASS |
+| Монотонность (неверные) | -0.1173 | -0.0010 | 0.0000 | ✅ PASS |
 | AUC-ROC | 0.4474 | 0.7500 | 0.6000 | ❌ FAIL |
 | Log-Loss | 0.9480 | 0.6000 | 0.8000 | ❌ FAIL |
 | RMSE | 0.5741 | 0.4000 | 0.6000 | ⚠️ WARN |
 
-**Interpretation:**
+**Интерпретация:**
 
-- **Monotonicity (correct)**: P(L) should increase after correct answers. Average ΔP(L) = +0.119773
-- **Monotonicity (incorrect)**: P(L) should decrease after incorrect answers. Average ΔP(L) = -0.117315
-- **AUC-ROC**: AUC ≥ 0.75: BKT is informative. 0.60–0.75: weak, parameters not calibrated. < 0.60: equivalent to random guessing.
-- **Log-Loss**: Log-Loss < 0.60: good calibration. > 0.80: predictions are overconfident or wrong.
-- **RMSE**: Root Mean Square Error of P(correct) vs actual. < 0.40: good. 0.40–0.60: acceptable. > 0.60: poor predictions.
+- **Монотонность (верные)**: P(L) должен расти после правильных ответов. Среднее ΔP(L) = +0.119773
+- **Монотонность (неверные)**: P(L) должен падать после ошибок. Среднее ΔP(L) = -0.117315
+- **AUC-ROC**: AUC ≥ 0.75: BKT информативен. 0.60–0.75: слабый, параметры не калиброваны. < 0.60: эквивалент случайному угадыванию.
+- **Log-Loss**: Log-Loss < 0.60: хорошая калибровка. > 0.80: прогнозы излишне уверены или ошибочны.
+- **RMSE**: Ср.-кв. ошибка P(correct) vs факт. < 0.40: хорошо. 0.40–0.60: приемлемо. > 0.60: плохие прогнозы.
 
 ## FSRS
 
-| Metric | Value | Good Threshold | Critical | Status |
+| Метрика | Значение | Порог (хор.) | Критич. | Статус |
 |---|---|---|---|---|
-| Stability monotonicity (correct) | 9021.6600 | 0.0010 | 0.0000 | ✅ PASS |
-| Stability monotonicity (incorrect) | -11537.7200 | -0.0010 | 0.0000 | ✅ PASS |
-| Calibration ECE | 0.3433 | 0.0500 | 0.1000 | ❌ FAIL |
+| Монотонность стабильности (верные) | 9021.6600 | 0.0010 | 0.0000 | ✅ PASS |
+| Монотонность стабильности (неверные) | -11537.7200 | -0.0010 | 0.0000 | ✅ PASS |
+| Калибровка ECE | 0.3433 | 0.0500 | 0.1000 | ❌ FAIL |
 
-**Interpretation:**
+**Интерпретация:**
 
-- **Stability monotonicity (correct)**: Memory stability should increase after correct answers. Average ΔS = +9021.66s
-- **Stability monotonicity (incorrect)**: Memory stability should decrease after incorrect answers. Average ΔS = -11537.72s
-- **Calibration ECE**: ECE < 0.05: excellent calibration. 0.05–0.10: acceptable. > 0.10: FSRS constants need calibration.
+- **Монотонность стабильности (верные)**: Стабильность памяти должна расти после правильных ответов. Среднее ΔS = +9021.66s
+- **Монотонность стабильности (неверные)**: Стабильность памяти должна падать после ошибок. Среднее ΔS = -11537.72s
+- **Калибровка ECE**: ECE < 0.05: отличная калибровка. 0.05–0.10: приемлемо. > 0.10: константы FSRS требуют калибровки.
 
-## Recommender
+## Рекомендатель
 
-| Metric | Value | Good Threshold | Critical | Status |
+| Метрика | Значение | Порог (хор.) | Критич. | Статус |
 |---|---|---|---|---|
-| ECE (calibration) | — | 0.0500 | 0.1000 | ⏭️ SKIP |
-| Brier Score | — | 0.2500 | 0.4000 | ⏭️ SKIP |
-| Hit Rate@5 | — | 0.3000 | 0.1000 | ⏭️ SKIP |
-| NDCG@5 | — | 0.4000 | 0.2000 | ⏭️ SKIP |
-| Topic Coverage | — | 0.6000 | 0.3000 | ⏭️ SKIP |
-| Filter consistency | — | 1.0000 | 0.5000 | ⏭️ SKIP |
+| Калибровка ECE | 0.1485 | 0.0500 | 0.1000 | ❌ FAIL |
+| Brier Score | 0.2527 | 0.2500 | 0.4000 | ⚠️ WARN |
+| Hit Rate@5 | 0.2767 | 0.3000 | 0.1000 | ⚠️ WARN |
+| NDCG@5 | 0.1957 | 0.4000 | 0.2000 | ❌ FAIL |
+| Охват тем | 1.0000 | 0.6000 | 0.3000 | ✅ PASS |
+| Согласованность фильтров | 1.0000 | 1.0000 | 0.5000 | ✅ PASS |
 
-**Interpretation:**
+**Интерпретация:**
 
-- **ECE (calibration)**: ECE < 0.05: expected_p_correct is well-calibrated. > 0.10: BKT parameters need fitting.
-- **Brier Score**: Brier Score < 0.25: good predictions. > 0.40: predictions are poor.
-- **Hit Rate@5**: Hit Rate ≥ 0.30: recommendations are relevant. < 0.10: revise scoring weights or loosen filters.
-- **NDCG@5**: NDCG ≥ 0.40: good ranking. < 0.20: ranking is nearly random.
-- **Topic Coverage**: Coverage ≥ 0.60: good diversity. < 0.30: recommender is stuck on one topic.
-- **Filter consistency**: All recommendations should respect cooldown and mastered filters.
+- **Калибровка ECE**: ECE < 0.05: expected_p_correct хорошо калиброван. > 0.10: параметры BKT требуют подгонки.
+- **Brier Score**: Brier Score < 0.25: хорошие прогнозы. > 0.40: прогнозы слабые.
+- **Hit Rate@5**: Hit Rate ≥ 0.30: рекомендации релевантны. < 0.10: пересмотрите веса или ослабьте фильтры.
+- **NDCG@5**: NDCG ≥ 0.40: хороший ранг. < 0.20: ранжирование почти случайное.
+- **Охват тем**: Coverage ≥ 0.60: хорошее разнообразие. < 0.30: рекомендер застрял на одной теме.
+- **Согласованность фильтров**: Все рекомендации должны учитывать cooldown и фильтры усвоенных.
 
-## Explanation (RAG)
+## Объяснение (RAG)
 
-| Metric | Value | Good Threshold | Critical | Status |
+| Метрика | Значение | Порог (хор.) | Критич. | Статус |
 |---|---|---|---|---|
-| Structure Compliance | 0.5000 | 0.9500 | 0.9000 | ❌ FAIL |
-| Faithfulness (LLM-judge) | — | 0.9000 | 0.7000 | ⏭️ SKIP |
-| Answer Relevancy (LLM-judge, 1-5) | — | 4.0000 | 3.0000 | ⏭️ SKIP |
+| Соответствие структуре | 0.5000 | 0.9500 | 0.9000 | ❌ FAIL |
+| Достоверность (LLM-судья) | 0.0000 | 0.9000 | 0.7000 | ❌ FAIL |
+| Релевантность ответа (LLM-судья, 1-5) | 1.0000 | 4.0000 | 3.0000 | ❌ FAIL |
 
-**Interpretation:**
+**Интерпретация:**
 
-- **Structure Compliance**: ≥ 0.95: explanations have all 4 required sections. < 0.90: prompt needs stricter formatting instructions.
-- **Faithfulness (LLM-judge)**: ≥ 0.90: explanations are grounded in context. < 0.70: LLM is hallucinating facts.
-- **Answer Relevancy (LLM-judge, 1-5)**: ≥ 4.0: explanations address the student's error well. < 3.0: retrieval or prompt issues.
+- **Соответствие структуре**: ≥ 0.95: объяснения содержат все 4 обязательных раздела. < 0.90: промпт требует более строгих инструкций по форматированию.
+- **Достоверность (LLM-судья)**: ≥ 0.90: объяснения основаны на контексте. < 0.70: LLM галлюцинирует факты.
+- **Релевантность ответа (LLM-судья, 1-5)**: ≥ 4.0: объяснения хорошо описывают ошибку студента. < 3.0: проблемы с поиском или промптом.
 
-## Theme Summary
+## Сводка по темам
 
-| Metric | Value | Good Threshold | Critical | Status |
+| Метрика | Значение | Порог (хор.) | Критич. | Статус |
 |---|---|---|---|---|
-| Format Compliance | 0.6000 | 0.9500 | 0.9000 | ❌ FAIL |
-| Concept Coverage | 0.0000 | 0.7000 | 0.5000 | ❌ FAIL |
-| Faithfulness (LLM-judge) | — | 0.8500 | 0.7000 | ⏭️ SKIP |
+| Соответствие формату | 0.6000 | 0.9500 | 0.9000 | ❌ FAIL |
+| Охват концепций | 0.0000 | 0.7000 | 0.5000 | ❌ FAIL |
+| Достоверность (LLM-судья) | 0.0000 | 0.8500 | 0.7000 | ❌ FAIL |
 
-**Interpretation:**
+**Интерпретация:**
 
-- **Format Compliance**: ≥ 0.95: summaries meet format requirements. < 0.90: prompt needs adjustment.
-- **Concept Coverage**: ≥ 0.70: summaries cover most key concepts. < 0.50: prompt needs to emphasize mentioning all terms.
-- **Faithfulness (LLM-judge)**: ≥ 0.85: summaries don't hallucinate. < 0.70: summaries contain fabricated facts.
+- **Соответствие формату**: ≥ 0.95: саммари соответствуют формату. < 0.90: промпт требует корректировки.
+- **Охват концепций**: ≥ 0.70: саммари покрывают большинство ключевых концепций. < 0.50: промпт должен emphasировать упоминание всех терминов.
+- **Достоверность (LLM-судья)**: ≥ 0.85: саммари без галлюцинаций. < 0.70: саммари содержат выдуманные факты.
 
-## Action Items
+## Действия
 
-- **[BKT] AUC-ROC**: AUC ≥ 0.75: BKT is informative. 0.60–0.75: weak, parameters not calibrated. < 0.60: equivalent to random guessing.
-- **[BKT] Log-Loss**: Log-Loss < 0.60: good calibration. > 0.80: predictions are overconfident or wrong.
-- **[FSRS] Calibration ECE**: ECE < 0.05: excellent calibration. 0.05–0.10: acceptable. > 0.10: FSRS constants need calibration.
-- **[Explanation (RAG)] Structure Compliance**: ≥ 0.95: explanations have all 4 required sections. < 0.90: prompt needs stricter formatting instructions.
-- **[Theme Summary] Format Compliance**: ≥ 0.95: summaries meet format requirements. < 0.90: prompt needs adjustment.
-- **[Theme Summary] Concept Coverage**: ≥ 0.70: summaries cover most key concepts. < 0.50: prompt needs to emphasize mentioning all terms.
+- **[BKT] AUC-ROC**: AUC ≥ 0.75: BKT информативен. 0.60–0.75: слабый, параметры не калиброваны. < 0.60: эквивалент случайному угадыванию.
+- **[BKT] Log-Loss**: Log-Loss < 0.60: хорошая калибровка. > 0.80: прогнозы излишне уверены или ошибочны.
+- **[FSRS] Калибровка ECE**: ECE < 0.05: отличная калибровка. 0.05–0.10: приемлемо. > 0.10: константы FSRS требуют калибровки.
+- **[Рекомендатель] Калибровка ECE**: ECE < 0.05: expected_p_correct хорошо калиброван. > 0.10: параметры BKT требуют подгонки.
+- **[Рекомендатель] NDCG@5**: NDCG ≥ 0.40: хороший ранг. < 0.20: ранжирование почти случайное.
+- **[Объяснение (RAG)] Соответствие структуре**: ≥ 0.95: объяснения содержат все 4 обязательных раздела. < 0.90: промпт требует более строгих инструкций по форматированию.
+- **[Объяснение (RAG)] Достоверность (LLM-судья)**: ≥ 0.90: объяснения основаны на контексте. < 0.70: LLM галлюцинирует факты.
+- **[Объяснение (RAG)] Релевантность ответа (LLM-судья, 1-5)**: ≥ 4.0: объяснения хорошо описывают ошибку студента. < 3.0: проблемы с поиском или промптом.
+- **[Сводка по темам] Соответствие формату**: ≥ 0.95: саммари соответствуют формату. < 0.90: промпт требует корректировки.
+- **[Сводка по темам] Охват концепций**: ≥ 0.70: саммари покрывают большинство ключевых концепций. < 0.50: промпт должен emphasировать упоминание всех терминов.
+- **[Сводка по темам] Достоверность (LLM-судья)**: ≥ 0.85: саммари без галлюцинаций. < 0.70: саммари содержат выдуманные факты.
 
 ---
-*Report generated by evaluation module — kn-trace-itmo*
+*Отчёт создан модулем оценки — kn-trace-itmo*

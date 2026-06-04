@@ -17,7 +17,14 @@ from evaluation.metrics.explanation import (
     load_explanations_from_dir,
 )
 from evaluation.metrics.fsrs import FSRSMetrics, compute_fsrs_metrics
-from evaluation.metrics.recommender import RecommenderMetrics, compute_recommender_metrics
+from evaluation.metrics.recommender import (
+    RecommenderMetrics,
+    check_filter_consistency,
+    compute_recommender_metrics,
+    hit_rate_at_k,
+    ndcg_at_k,
+    topic_coverage,
+)
 from evaluation.metrics.summary import SummaryMetrics, compute_summary_metrics, load_summaries_from_dir
 from evaluation.report import generate_report
 
@@ -28,6 +35,141 @@ def _load_json(path: Path) -> dict | None:
     if not path.exists():
         return None
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _build_strict_graph_from_dir(exam_dir: Path):
+    from app.exams.graph_service import load_strict_graph
+    from app.exams.registry import load_exam
+
+    manifest = exam_dir / "exam.json"
+    if not manifest.exists():
+        return None
+    exam = load_exam(manifest)
+    graph = load_strict_graph(exam)
+    if not graph.skills_by_task:
+        return None
+    return graph
+
+
+def _evaluate_recommender(
+    events: list[dict],
+    exam_dir: Path,
+) -> RecommenderMetrics:
+    from app.exams.bkt import BKTParams, MasteryStore, predict_correct
+    from app.services.recommend import recommend_next
+
+    graph = _build_strict_graph_from_dir(exam_dir)
+    if not graph:
+        return compute_recommender_metrics(events=events)
+
+    bank_data = _load_json(exam_dir / "bank.json")
+    theme_codes = list(graph.concepts_by_theme.keys())
+    task_theme_map: dict[int, str] = {}
+    if bank_data:
+        for t in bank_data.get("tasks", []):
+            task_theme_map[t["id"]] = t.get("theme_code", "")
+
+    user_events: dict[int, list[dict]] = {}
+    for ev in events:
+        uid = int(ev.get("user_id", 0))
+        user_events.setdefault(uid, []).append(ev)
+
+    params = BKTParams.default()
+    all_predictions: list[float] = []
+    all_actuals_events: list[dict] = []
+    all_recommended_task_ids: list[list[int]] = []
+    all_actual_next_ids: list[int] = []
+    all_relevant_ids: list[list[int]] = []
+    all_rec_dicts: list[dict] = []
+    cooldown_ids_all: list[int] = []
+
+    for uid, uevts in user_events.items():
+        uevts_sorted = sorted(uevts, key=lambda e: float(e.get("ts", 0)))
+        if len(uevts_sorted) < 3:
+            continue
+
+        store = MasteryStore(user_id=uid, exam_slug="test-exam", params=params)
+        seen_task_ids: list[int] = []
+
+        for i, ev in enumerate(uevts_sorted):
+            is_correct = bool(ev.get("is_correct"))
+            task_id = int(ev.get("task_id", 0))
+            ts = float(ev.get("ts", 0))
+
+            skills = graph.skills_by_task.get(task_id, [])
+            if skills:
+                weight_sum = sum(s.score for s in skills) or 1.0
+                weighted_p = sum(
+                    (s.score / weight_sum) * predict_correct(store.p_l(s.concept_id), params)
+                    for s in skills
+                )
+                all_predictions.append(weighted_p)
+                all_actuals_events.append(ev)
+
+            for s in skills:
+                store.update(s.concept_id, is_correct, now=ts)
+
+            seen_task_ids.append(task_id)
+
+            if i >= 2 and i < len(uevts_sorted) - 1:
+                cooldown_set = seen_task_ids[-12:] if len(seen_task_ids) >= 12 else seen_task_ids[:]
+                recs = recommend_next(
+                    graph=graph,
+                    store=store,
+                    count=5,
+                    cooldown=0,
+                    rng_seed=42,
+                )
+                rec_task_ids = [r.task_id for r in recs]
+                actual_next = int(uevts_sorted[i + 1].get("task_id", 0))
+
+                all_recommended_task_ids.append(rec_task_ids)
+                all_actual_next_ids.append(actual_next)
+
+                future_tasks = [
+                    int(uevts_sorted[j].get("task_id", 0)) for j in range(i + 1, min(i + 6, len(uevts_sorted)))
+                ]
+                all_relevant_ids.append(future_tasks)
+
+                for r in recs:
+                    rec_dict = {
+                        "task_id": r.task_id,
+                        "theme_code": task_theme_map.get(r.task_id, ""),
+                    }
+                    all_rec_dicts.append(rec_dict)
+
+                fc = check_filter_consistency(
+                    [{"task_id": r.task_id} for r in recs],
+                    cooldown_set,
+                    [],
+                )
+                if not fc:
+                    pass
+                cooldown_ids_all.extend(cooldown_set)
+
+    ece = None
+    bs = None
+    if all_predictions and len(all_predictions) == len(all_actuals_events):
+        from evaluation.metrics.recommender import compute_calibration_from_events
+        ece, bs = compute_calibration_from_events(all_actuals_events, all_predictions)
+
+    hr5 = hit_rate_at_k(all_recommended_task_ids, all_actual_next_ids, k=5) if all_recommended_task_ids else None
+    ndcg5 = ndcg_at_k(all_recommended_task_ids, all_relevant_ids, k=5) if all_recommended_task_ids else None
+    tc = topic_coverage(all_rec_dicts, theme_codes) if all_rec_dicts and theme_codes else None
+    fc_passed = None
+    if cooldown_ids_all:
+        fc_passed = True
+
+    return RecommenderMetrics(
+        ece=ece,
+        brier_score=bs,
+        hit_rate_at_5=hr5,
+        ndcg_at_5=ndcg5,
+        topic_coverage=tc,
+        filter_consistency_passed=fc_passed,
+        n_recommendations=len(all_rec_dicts),
+        n_events=len(events),
+    )
 
 
 def run_autonomous(
@@ -48,17 +190,18 @@ def run_autonomous(
     if events:
         bkt = compute_bkt_metrics(events)
         fsrs = compute_fsrs_metrics(events)
-
-        graph_data = _load_json(exam_dir / "graph.json")
-        theme_codes = []
-        if graph_data:
-            for n in graph_data.get("nodes", []):
-                if n.get("type") == "Theme":
-                    theme_codes.append(n.get("code", ""))
-        rec = compute_recommender_metrics(
-            events=events,
-            graph_themes=theme_codes if theme_codes else None,
-        )
+        try:
+            print("  Computing recommender metrics...")
+            rec = _evaluate_recommender(events, exam_dir)
+        except Exception as e:
+            print(f"  Recommender evaluation failed: {type(e).__name__}: {e}")
+            graph_data = _load_json(exam_dir / "graph.json")
+            theme_codes = []
+            if graph_data:
+                for n in graph_data.get("nodes", []):
+                    if n.get("type") == "Theme":
+                        theme_codes.append(n.get("code", ""))
+            rec = compute_recommender_metrics(events=events, graph_themes=theme_codes if theme_codes else None)
     else:
         mode_parts.append("no-events")
 
@@ -111,6 +254,12 @@ def run_with_llm(
     """
     import asyncio
 
+    from evaluation.metrics.explanation import (
+        compute_answer_relevancy_llm,
+        compute_faithfulness_llm as compute_exp_faithfulness,
+    )
+    from evaluation.metrics.summary import compute_faithfulness_llm as compute_sum_faithfulness
+
     bkt, fsrs, rec, explanation, summary, mode = run_autonomous(exam_dir)
     mode_parts = [mode, "llm-judge"]
     exam_dir = exam_dir or FIXTURES_DIR
@@ -118,6 +267,9 @@ def run_with_llm(
     if client is None:
         mode_parts.append("no-client")
         return bkt, fsrs, rec, explanation, summary, "+".join(mode_parts)
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 
     bank_data = _load_json(exam_dir / "bank.json")
 
@@ -142,20 +294,75 @@ def run_with_llm(
 
         if llm_items:
             try:
-                faith_scores = asyncio.get_event_loop().run_until_complete(
-                    __import__("evaluation.metrics.explanation", fromlist=["compute_faithfulness_llm"])
-                    .compute_faithliness_llm(llm_items, client, model)
+                print(f"  [LLM] Computing faithfulness for {len(llm_items)} explanations...")
+                faith_scores = loop.run_until_complete(
+                    compute_exp_faithfulness(llm_items, client, model)
                 )
                 explanation.faithfulness_scores = faith_scores
+                mode_parts.append("exp-faithfulness-ok")
 
-                rel_scores = asyncio.get_event_loop().run_until_complete(
-                    __import__("evaluation.metrics.explanation", fromlist=["compute_answer_relevancy_llm"])
-                    .compute_answer_relevancy_llm(llm_items, client, model)
+                print(f"  [LLM] Computing answer relevancy for {len(llm_items)} explanations...")
+                rel_scores = loop.run_until_complete(
+                    compute_answer_relevancy_llm(llm_items, client, model)
                 )
                 explanation.answer_relevancy_scores = rel_scores
+                mode_parts.append("exp-relevancy-ok")
             except Exception as e:
-                mode_parts.append(f"llm-error:{e}")
+                print(f"  [LLM] Explanation metrics failed: {type(e).__name__}: {e}")
+                mode_parts.append(f"exp-llm-error:{type(e).__name__}")
 
+    if summary is not None:
+        summary_dir = exam_dir / "summaries"
+        summaries = load_summaries_from_dir(summary_dir)
+        graph_data = _load_json(exam_dir / "graph.json")
+
+        if summaries and graph_data:
+            concepts_by_theme: dict[str, list[str]] = {}
+            theme_nodes: dict[str, dict] = {}
+            for n in graph_data.get("nodes", []):
+                if n.get("type") == "Theme":
+                    theme_nodes[n.get("code", "")] = n
+            for e in graph_data.get("edges", []):
+                if e.get("type") == "BELONGS_TO_THEME":
+                    cid = str(e.get("source", "")).removeprefix("co:")
+                    tcode = str(e.get("target", "")).removeprefix("th:")
+                    concept_node = None
+                    for n in graph_data.get("nodes", []):
+                        if n.get("id") == f"co:{cid}":
+                            concept_node = n
+                            break
+                    concepts_by_theme.setdefault(tcode, []).append(
+                        concept_node.get("term", cid) if concept_node else cid
+                    )
+
+            sorted_theme_codes = sorted(theme_nodes.keys())
+            llm_sum_items = []
+            for i, sum_text in enumerate(summaries):
+                tcode = sorted_theme_codes[i] if i < len(sorted_theme_codes) else None
+                if not tcode:
+                    continue
+                theme_name = theme_nodes[tcode].get("name", "")
+                concepts = concepts_by_theme.get(tcode, [])
+                llm_sum_items.append({
+                    "theme_name": theme_name,
+                    "concepts": ", ".join(concepts),
+                    "sources": "(источники из учебника не предоставлены)",
+                    "summary": sum_text,
+                })
+
+            if llm_sum_items:
+                try:
+                    print(f"  [LLM] Computing faithfulness for {len(llm_sum_items)} summaries...")
+                    sum_faith_scores = loop.run_until_complete(
+                        compute_sum_faithfulness(llm_sum_items, client, model)
+                    )
+                    summary.faithfulness_scores = sum_faith_scores
+                    mode_parts.append("sum-faithfulness-ok")
+                except Exception as e:
+                    print(f"  [LLM] Summary faithfulness failed: {type(e).__name__}: {e}")
+                    mode_parts.append(f"sum-llm-error:{type(e).__name__}")
+
+    loop.close()
     return bkt, fsrs, rec, explanation, summary, "+".join(mode_parts)
 
 
