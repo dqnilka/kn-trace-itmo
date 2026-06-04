@@ -114,6 +114,23 @@ COMPOUND_QUESTION_OVERLAY_RU = """ВАЖНО: вопрос затрагивае�
 вместо общих фраз — это полезно студенту, чтобы знать пробел."""
 
 
+def _resolve_auth_scheme(settings) -> str:
+    """Pick the HTTP auth scheme for the LLM endpoint.
+
+    Explicit ``LLM_AUTH_SCHEME`` wins. Otherwise auto-detect: YandexGPT service-
+    account API keys (``AQVN...`` against the YC endpoint) need "Api-Key";
+    everything else (incl. YC IAM tokens ``t1...``) uses standard Bearer.
+    """
+    explicit = getattr(settings, "llm_auth_scheme", None)
+    if explicit:
+        return explicit
+    key = settings.effective_api_key or ""
+    is_yc = "llm.api.cloud.yandex.net" in (settings.llm_base_url or "")
+    if is_yc and key.startswith("AQVN"):
+        return "api-key"
+    return "bearer"
+
+
 class Generator:
     def __init__(
         self,
@@ -123,6 +140,7 @@ class Generator:
         timeout_s: float = 60.0,
         max_tokens: int = 1200,
         ca_bundle: str | None = None,
+        auth_scheme: str = "bearer",
     ) -> None:
         import httpx
         from openai import OpenAI
@@ -134,15 +152,22 @@ class Generator:
         if ca_bundle:
             verify = ca_bundle
         http_client = httpx.Client(verify=verify, timeout=timeout_s)
-        self._client = OpenAI(
-            api_key=api_key,
-            base_url=base_url,
-            http_client=http_client,
-            timeout=timeout_s,
+        # YandexGPT service-account keys use the "Api-Key <key>" scheme, which
+        # the OpenAI SDK can't emit (it always sends "Bearer"). Inject it as a
+        # default header and hand the SDK a placeholder key. IAM tokens and all
+        # other providers use the standard Bearer path.
+        client_kwargs: dict = dict(
+            base_url=base_url, http_client=http_client, timeout=timeout_s
         )
+        if auth_scheme == "api-key":
+            client_kwargs["api_key"] = "unused-api-key-in-header"
+            client_kwargs["default_headers"] = {"Authorization": f"Api-Key {api_key}"}
+        else:
+            client_kwargs["api_key"] = api_key
+        self._client = OpenAI(**client_kwargs)
         logger.info(
-            "LLM client configured (base_url=%s, model=%s, ca_bundle=%s)",
-            base_url, model, ca_bundle or "(default)",
+            "LLM client configured (base_url=%s, model=%s, auth=%s, ca_bundle=%s)",
+            base_url, model, auth_scheme, ca_bundle or "(default)",
         )
 
     @classmethod
@@ -177,6 +202,7 @@ class Generator:
             timeout_s=settings.llm_timeout_s,
             max_tokens=settings.llm_max_tokens,
             ca_bundle=settings.llm_ca_bundle,
+            auth_scheme=_resolve_auth_scheme(settings),
         )
 
     # ---------- public API ----------

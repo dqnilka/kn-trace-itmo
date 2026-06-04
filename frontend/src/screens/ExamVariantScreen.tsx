@@ -12,10 +12,6 @@ import type {
 
 const EXAM_SIZE = 50
 const SEED_BASE = 4242
-// Узел m2: 120 минут на полный экзамен. Под наш мок-вариант на 50 вопросов
-// мы используем 60 минут — этого достаточно, чтобы продемонстрировать таймер
-// и предупреждения. Подставится 120 минут при полноценных 80 вопросах.
-const EXAM_SECONDS = 60 * 60
 
 type AnswerLog = {
   task_id: number
@@ -34,15 +30,12 @@ type Phase =
       bank: ExamBank
       index: number
       answers: AnswerLog[]
-      startedAt: number // ms epoch
     }
-  | { kind: 'timeout'; tasks: BankTask[]; bank: ExamBank; answers: AnswerLog[] }
   | {
       kind: 'done'
       tasks: BankTask[]
       bank: ExamBank
       answers: AnswerLog[]
-      timedOut?: boolean
     }
 
 function pickExamSample(bank: ExamBank, variantId: number): BankTask[] {
@@ -64,11 +57,9 @@ function pickExamSample(bank: ExamBank, variantId: number): BankTask[] {
 export default function ExamVariantScreen({
   variantId,
   onBack,
-  onOutcome,
 }: {
   variantId: number
   onBack: () => void
-  onOutcome?: (passed: boolean, pct: number) => void
 }) {
   const [phase, setPhase] = useState<Phase>({ kind: 'loading' })
 
@@ -104,61 +95,7 @@ export default function ExamVariantScreen({
       bank: phase.bank,
       index: 0,
       answers: [],
-      startedAt: Date.now(),
     })
-  }
-
-  // Таймер обратного отсчёта (узлы m4/m4a/m7a диаграммы).
-  // Перерисовываем каждую секунду, чтобы класс предупреждения переключался.
-  const [now, setNow] = useState<number>(() => Date.now())
-  useEffect(() => {
-    if (phase.kind !== 'asking') return
-    const id = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(id)
-  }, [phase.kind])
-
-  useEffect(() => {
-    if (phase.kind !== 'asking') return
-    const elapsed = Math.floor((now - phase.startedAt) / 1000)
-    if (elapsed >= EXAM_SECONDS) {
-      setPhase({ kind: 'timeout', tasks: phase.tasks, bank: phase.bank, answers: phase.answers })
-    }
-  }, [now, phase])
-
-  const finalizeAndSummarize = (
-    answers: AnswerLog[],
-    tasks: BankTask[],
-    bank: ExamBank,
-    timedOut: boolean,
-  ) => {
-    const idx = buildIndex(bank)
-    const correct = answers.filter((a) => a.is_correct).length
-    const per_chapter: ExamVariantSummary['per_chapter'] = {}
-    for (const a of answers) {
-      const ch = idx.chaptersById.get(a.chapter_id)
-      const key = String(a.chapter_id)
-      const slot = (per_chapter[key] ??= {
-        chapter_id: a.chapter_id,
-        chapter_name: ch?.name ?? 'Без раздела',
-        asked: 0,
-        wrong: 0,
-      })
-      slot.asked += 1
-      if (!a.is_correct) slot.wrong += 1
-    }
-    // Не сохраняем пустые «варианты»: если пользователь нажал «завершить
-    // досрочно» не ответив ни на один вопрос, в истории такая запись только
-    // зашумит UI и приведёт к делению на ноль на дашборде.
-    if (answers.length > 0) {
-      pushVariant({
-        variant_id: variantId,
-        taken_at: new Date().toISOString(),
-        total: answers.length,
-        correct,
-        per_chapter,
-      })
-    }
-    setPhase({ kind: 'done', tasks, bank, answers, timedOut })
   }
 
   const onAnswer = (outcome: {
@@ -181,7 +118,33 @@ export default function ExamVariantScreen({
     saveMastery(bumpMastery(loadMastery(), task.theme_code, outcome.is_correct))
     const next = phase.index + 1
     if (next >= phase.tasks.length) {
-      finalizeAndSummarize(answers, phase.tasks, phase.bank, false)
+      const correct = answers.filter((a) => a.is_correct).length
+      const per_chapter: ExamVariantSummary['per_chapter'] = {}
+      for (const a of answers) {
+        const ch = idx.chaptersById.get(a.chapter_id)
+        const key = String(a.chapter_id)
+        const slot = (per_chapter[key] ??= {
+          chapter_id: a.chapter_id,
+          chapter_name: ch?.name ?? 'Без раздела',
+          asked: 0,
+          wrong: 0,
+        })
+        slot.asked += 1
+        if (!a.is_correct) slot.wrong += 1
+      }
+      pushVariant({
+        variant_id: variantId,
+        taken_at: new Date().toISOString(),
+        total: answers.length,
+        correct,
+        per_chapter,
+      })
+      setPhase({
+        kind: 'done',
+        tasks: phase.tasks,
+        bank: phase.bank,
+        answers,
+      })
       return
     }
     setPhase({ ...phase, index: next, answers })
@@ -189,7 +152,35 @@ export default function ExamVariantScreen({
 
   const finishEarly = () => {
     if (phase.kind !== 'asking') return
-    finalizeAndSummarize(phase.answers, phase.tasks, phase.bank, false)
+    // treat unanswered as wrong — submit as-is up to current index
+    const idx = buildIndex(phase.bank)
+    const correct = phase.answers.filter((a) => a.is_correct).length
+    const per_chapter: ExamVariantSummary['per_chapter'] = {}
+    for (const a of phase.answers) {
+      const ch = idx.chaptersById.get(a.chapter_id)
+      const key = String(a.chapter_id)
+      const slot = (per_chapter[key] ??= {
+        chapter_id: a.chapter_id,
+        chapter_name: ch?.name ?? 'Без раздела',
+        asked: 0,
+        wrong: 0,
+      })
+      slot.asked += 1
+      if (!a.is_correct) slot.wrong += 1
+    }
+    pushVariant({
+      variant_id: variantId,
+      taken_at: new Date().toISOString(),
+      total: phase.answers.length,
+      correct,
+      per_chapter,
+    })
+    setPhase({
+      kind: 'done',
+      tasks: phase.tasks,
+      bank: phase.bank,
+      answers: phase.answers,
+    })
   }
 
   const { chaptersOfTasks } = useMemo(() => {
@@ -248,44 +239,14 @@ export default function ExamVariantScreen({
             {phase.tasks.length} вопросов · охват {chaptersOfTasks.size} разделов
           </p>
           <ul className="exam-rules">
-            <li>
-              На весь вариант — {Math.floor(EXAM_SECONDS / 60)} минут (обратный
-              таймер сверху).
-            </li>
             <li>Подсказки отключены — отвечай как на настоящем экзамене.</li>
             <li>Можно завершить досрочно, тогда оценим по сделанному.</li>
             <li>Проходной балл — 80%.</li>
-            <li>Если время выйдет — посчитаем по сделанным ответам.</li>
+            <li>Результаты появятся в истории и обновят прогноз.</li>
           </ul>
           <div className="actions-row">
             <button className="pill pill-primary big" onClick={start}>
               Начать экзамен →
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (phase.kind === 'timeout') {
-    // узлы m4a → m7a → m8 диаграммы: «Время вышло» → подсчёт результата
-    return (
-      <div className="screen">
-        <div className="screen-body narrow centered">
-          <div className="trophy">⏱️</div>
-          <h1 className="screen-title">Время вышло</h1>
-          <p className="screen-subtitle">
-            Не страшно — посчитаем по фактически сделанным ответам. На реальном
-            экзамене таймер не остановишь, поэтому такой опыт — часть подготовки.
-          </p>
-          <div className="actions-row">
-            <button
-              className="pill pill-primary big"
-              onClick={() =>
-                finalizeAndSummarize(phase.answers, phase.tasks, phase.bank, true)
-              }
-            >
-              Показать результат →
             </button>
           </div>
         </div>
@@ -320,18 +281,9 @@ export default function ExamVariantScreen({
     return (
       <div className="screen">
         <div className="screen-body narrow centered">
-          {phase.timedOut && (
-            <div className="banner-warn" style={{ marginBottom: 16 }}>
-              <div className="banner-emoji">⏱️</div>
-              <div className="banner-body">
-                Время вышло — не успели до окончания таймера. Считаем по сделанным
-                ответам ({total} из {phase.tasks.length}).
-              </div>
-            </div>
-          )}
           <div className="trophy">{passed ? '🏆' : '📚'}</div>
           <h1 className="screen-title">
-            {passed ? 'Отличный результат' : 'Не совсем получилось'}
+            {passed ? 'Сдано!' : 'Чуть-чуть не хватило'}
           </h1>
           <p className="screen-subtitle">
             Пробный вариант №{variantId} · {correct} из {total} верно
@@ -370,18 +322,9 @@ export default function ExamVariantScreen({
           </div>
 
           <div className="actions-row">
-            {onOutcome ? (
-              <button
-                className="pill pill-primary big"
-                onClick={() => onOutcome(passed, pct)}
-              >
-                {passed ? 'Что дальше →' : 'Разобрать ошибки →'}
-              </button>
-            ) : (
-              <button className="pill pill-primary" onClick={onBack}>
-                На дашборд →
-              </button>
-            )}
+            <button className="pill pill-primary" onClick={onBack}>
+              На дашборд →
+            </button>
           </div>
         </div>
       </div>
@@ -394,40 +337,12 @@ export default function ExamVariantScreen({
   const chapter = theme ? idx.chaptersById.get(theme.chapter_id) : undefined
   const correct = phase.answers.filter((a) => a.is_correct).length
 
-  const elapsedSec = Math.floor((now - phase.startedAt) / 1000)
-  const remainingSec = Math.max(0, EXAM_SECONDS - elapsedSec)
-  const remainingMin = Math.floor(remainingSec / 60)
-  const timerClass =
-    remainingSec < 60
-      ? 'timer-flash'
-      : remainingSec < 5 * 60
-        ? 'timer-pulse'
-        : remainingSec < 10 * 60
-          ? 'timer-warn'
-          : 'timer-ok'
-  const mm = Math.floor(remainingSec / 60)
-    .toString()
-    .padStart(2, '0')
-  const ss = (remainingSec % 60).toString().padStart(2, '0')
-
   return (
     <div className="screen">
       <div className="screen-head">
         <button className="link-button" onClick={finishEarly}>
           завершить досрочно
         </button>
-        <div className={`mock-timer ${timerClass}`} title="Обратный отсчёт">
-          ⏱ {mm}:{ss}
-          {remainingMin < 10 && remainingMin >= 5 && (
-            <span className="timer-hint">меньше 10 мин</span>
-          )}
-          {remainingMin < 5 && remainingSec >= 60 && (
-            <span className="timer-hint">меньше 5 мин!</span>
-          )}
-          {remainingSec < 60 && (
-            <span className="timer-hint">меньше минуты!</span>
-          )}
-        </div>
         <div className="meta">
           Пробный №{variantId} · {phase.index + 1}/{phase.tasks.length} ·{' '}
           ✓ {correct}

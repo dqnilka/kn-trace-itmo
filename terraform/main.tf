@@ -126,6 +126,7 @@ resource "yandex_serverless_container" "kt" {
     environment = {
       LLM_BASE_URL          = var.llm_base_url
       LLM_MODEL             = var.llm_model
+      LLM_AUTH_SCHEME       = var.llm_auth_scheme
       LLM_MAX_TOKENS        = tostring(var.llm_max_tokens)
       LLM_MAX_INPUT_CHARS   = tostring(var.llm_max_input_chars)
       LLM_CACHE_ENABLED     = "true"

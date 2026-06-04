@@ -265,7 +265,49 @@ async def get_theme_article(
             )
         )
 
-    # LLM-clean summary (cached). Generated lazily on first request; <1s on cache hit.
+    # --- Theme's actual tasks + the concepts they test (the grounding signal) ---
+    graph = graphs.get(exam)
+    theme_tasks = [t for t in bank.get("tasks", []) if str(t.get("theme_code")) == str(code)]
+    task_count = len(theme_tasks)
+    task_ids = [int(t["id"]) for t in theme_tasks if t.get("id") is not None]
+
+    # Concepts ranked by how strongly THIS theme's tasks test them
+    # (TESTS_CONCEPT). Falls back to BELONGS_TO_THEME when task links are absent
+    # so the block is never empty for a populated theme.
+    ranked_concept_ids = graph.tested_concepts_for_tasks(task_ids, top_k=30)
+    if not ranked_concept_ids:
+        ranked_concept_ids = graph.concepts_by_theme.get(str(code), [])[:30]
+
+    concepts_out: list[ThemeConcept] = []
+    for cid in ranked_concept_ids:
+        info = graph.concept_info.get(cid) or {}
+        concepts_out.append(
+            ThemeConcept(
+                id=cid,
+                term=str(info.get("term") or cid),
+                definition=str(info.get("definition") or "")[:400],
+                prereq_count=len(graph.prereqs_of.get(cid, [])),
+            )
+        )
+
+    # A small sample of the real questions, to steer the summary toward exactly
+    # what the exam asks in this theme.
+    def _correct_text(t: dict) -> str:
+        for o in t.get("options") or []:
+            if o.get("is_correct"):
+                return str(o.get("text") or "")
+        return str(t.get("solution_text") or "")
+
+    task_sample = [
+        {"task_text": str(t.get("task_text") or ""), "correct": _correct_text(t)}
+        for t in theme_tasks[:6]
+    ]
+    concept_sample = [
+        {"term": c.term, "definition": c.definition} for c in concepts_out[:10]
+    ]
+
+    # LLM-clean summary, grounded on the theme's tasks + tested concepts (cached).
+    # Generated lazily on first request; <1s on cache hit.
     summary_md: str | None = None
     cached = False
     if not raw:
@@ -285,34 +327,13 @@ async def get_theme_article(
                 chapter_name=(chapter or {}).get("name"),
                 sections=section_dicts,
                 llm_generator=ctx.generator,
+                tasks=task_sample,
+                concepts=concept_sample,
             )
             summary_md = res.summary_md
             cached = res.cached
         except Exception as e:  # noqa: BLE001
             logger.warning("Theme summary failed for %s/%s: %s", slug, code, e)
-
-    # Concepts that belong to this theme + task count from the strict graph.
-    concepts_out: list[ThemeConcept] = []
-    task_count = 0
-    try:
-        graph = graphs.get(exam)
-        concept_ids = graph.concepts_by_theme.get(str(code), [])
-        for cid in concept_ids[:30]:
-            info = graph.concept_info.get(cid) or {}
-            concepts_out.append(
-                ThemeConcept(
-                    id=cid,
-                    term=str(info.get("term") or cid),
-                    definition=str(info.get("definition") or "")[:400],
-                    prereq_count=len(graph.prereqs_of.get(cid, [])),
-                )
-            )
-        # task count from bank to give the user "53 задачи" hint
-        for t in bank.get("tasks", []):
-            if str(t.get("theme_code")) == str(code):
-                task_count += 1
-    except Exception:  # noqa: BLE001
-        pass
 
     return ThemeArticleResponse(
         slug=slug,

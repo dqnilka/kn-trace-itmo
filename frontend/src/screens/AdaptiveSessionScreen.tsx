@@ -47,11 +47,9 @@ function shuffle<T>(arr: T[]): T[] {
 export default function AdaptiveSessionScreen({
   onBack,
   onRestart,
-  onOpenTheory,
 }: {
   onBack: () => void
   onRestart: () => void
-  onOpenTheory?: (code: string) => void
 }) {
   const [phase, setPhase] = useState<Phase>({ kind: 'loading' })
 
@@ -265,10 +263,8 @@ export default function AdaptiveSessionScreen({
           total={phase.plan.length}
           chapterName={cur.chapter?.name}
           themeName={cur.theme.name}
-          themeCode={cur.theme.code}
           showInstantFeedback
           onAnswer={onAnswer}
-          onOpenTheory={onOpenTheory}
         />
       </div>
     </div>

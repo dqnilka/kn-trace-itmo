@@ -49,6 +49,12 @@ variable "llm_model" {
   description = "Имя модели у провайдера"
 }
 
+variable "llm_auth_scheme" {
+  type        = string
+  default     = ""
+  description = "Схема авторизации LLM-эндпоинта: 'bearer' (OpenAI/IAM-токен) или 'api-key' (YandexGPT со статическим ключом сервисного аккаунта). Пусто = автоопределение."
+}
+
 variable "llm_max_tokens" {
   type        = number
   default     = 1200

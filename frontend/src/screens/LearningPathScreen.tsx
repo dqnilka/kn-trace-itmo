@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import SafeMarkdown from '../components/SafeMarkdown'
-import { api, isAbortError } from '../api'
+import { api } from '../api'
 import QuestionCard from '../components/QuestionCard'
 import { ACTIVE_EXAM_SLUG, buildIndex, loadBank } from '../state/bank'
 import {
@@ -76,11 +76,9 @@ function shuffle<T>(arr: T[]): T[] {
 export default function LearningPathScreen({
   onBack,
   onRestart,
-  onOpenTheory,
 }: {
   onBack: () => void
   onRestart: () => void
-  onOpenTheory?: (code: string) => void
 }) {
   const [phase, setPhase] = useState<Phase>({ kind: 'loading' })
 
@@ -132,11 +130,11 @@ export default function LearningPathScreen({
     if (phase.content !== null || phase.theoryError !== null) return
     const unit = phase.units[phase.idx]
     if (!unit) return
-    const ctrl = new AbortController()
+    let cancelled = false
     api
-      .examTheme(ACTIVE_EXAM_SLUG, unit.theme.code, { signal: ctrl.signal })
+      .examTheme(ACTIVE_EXAM_SLUG, unit.theme.code)
       .then((r) => {
-        if (ctrl.signal.aborted) return
+        if (cancelled) return
         const sections = (r.sections || []).slice(0, 2).map((s) => ({
           section_path: s.section_path,
           excerpt: s.excerpt || s.snippet,
@@ -154,15 +152,16 @@ export default function LearningPathScreen({
         )
       })
       .catch((e) => {
-        if (ctrl.signal.aborted || isAbortError(e)) return
-        setPhase((p) =>
-          p.kind === 'theory'
-            ? { ...p, theoryError: e instanceof Error ? e.message : String(e) }
-            : p,
-        )
+        if (!cancelled) {
+          setPhase((p) =>
+            p.kind === 'theory'
+              ? { ...p, theoryError: e instanceof Error ? e.message : String(e) }
+              : p,
+          )
+        }
       })
     return () => {
-      ctrl.abort()
+      cancelled = true
     }
   }, [phase])
 
@@ -347,7 +346,9 @@ export default function LearningPathScreen({
               )}
               {content?.summary_md && (
                 <div className="theory summary-theory">
-                  <SafeMarkdown>{content.summary_md}</SafeMarkdown>
+                  <SafeMarkdown>
+                    {content.summary_md}
+                  </SafeMarkdown>
                 </div>
               )}
               {content && !content.summary_md && content.sections.length > 0 && (
@@ -357,7 +358,9 @@ export default function LearningPathScreen({
                     <section key={i} className="learn-section">
                       <div className="learn-section-path">{s.section_path}</div>
                       <div className="learn-section-body theory">
-                        <SafeMarkdown>{s.excerpt.slice(0, 1200)}</SafeMarkdown>
+                        <SafeMarkdown>
+                          {s.excerpt.slice(0, 1200)}
+                        </SafeMarkdown>
                       </div>
                     </section>
                   ))}
@@ -404,10 +407,8 @@ export default function LearningPathScreen({
           total={unit.tasks.length}
           chapterName={unit.chapter?.name}
           themeName={unit.theme.name}
-          themeCode={unit.theme.code}
           showInstantFeedback
           onAnswer={onAnswer}
-          onOpenTheory={onOpenTheory}
         />
       </div>
     </div>

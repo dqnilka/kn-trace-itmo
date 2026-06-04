@@ -1,4 +1,4 @@
-import { api, type FetchOpts } from '../api'
+import { api } from '../api'
 import type {
   BankChapter,
   BankTask,
@@ -8,49 +8,22 @@ import type {
 
 export const ACTIVE_EXAM_SLUG = 'fsfr-basic'
 
-/**
- * Кэш банков по slug. Раньше был один глобальный `cache` — это блокировало
- * переключение серии на лету (вызов `loadBank('fsfr-1.0')` после загрузки
- * базовой получал бы базовый банк из кэша). Теперь — `Map<slug, ExamBank>`.
- */
-const cache = new Map<string, ExamBank>()
-const inflight = new Map<string, Promise<ExamBank>>()
+let cache: ExamBank | null = null
+let inflight: Promise<ExamBank> | null = null
 
-export async function loadBank(
-  slug: string = ACTIVE_EXAM_SLUG,
-  opts?: FetchOpts,
-): Promise<ExamBank> {
-  const cached = cache.get(slug)
-  if (cached) return cached
-  const pending = inflight.get(slug)
-  if (pending) return pending
-  const p = api
-    .examBank(slug, opts)
+export async function loadBank(slug: string = ACTIVE_EXAM_SLUG): Promise<ExamBank> {
+  if (cache) return cache
+  if (inflight) return inflight
+  inflight = api
+    .examBank(slug)
     .then((b) => {
-      cache.set(slug, b)
+      cache = b
       return b
     })
     .finally(() => {
-      inflight.delete(slug)
+      inflight = null
     })
-  inflight.set(slug, p)
-  return p
-}
-
-/**
- * Сбросить кэш банка. Вызвать после смены серии экзамена.
- *
- * @param slug — какой именно сбросить; без аргумента — все.
- */
-export function invalidateBank(slug?: string): void {
-  if (slug) {
-    cache.delete(slug)
-    inflight.delete(slug)
-  } else {
-    cache.clear()
-    inflight.clear()
-  }
-  indexCache = null
+  return inflight
 }
 
 export type BankIndex = {
