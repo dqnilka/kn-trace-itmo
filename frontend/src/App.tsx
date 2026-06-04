@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import HealthBadge from './components/HealthBadge'
+import Logo from './components/Logo'
 import AuthScreen from './screens/AuthScreen'
 import EntranceTestScreen from './screens/EntranceTestScreen'
 import ResultsScreen from './screens/ResultsScreen'
@@ -24,7 +24,6 @@ import {
 import type {
   AuthUser,
   BankEntranceResult,
-  Health,
   MasteryStore,
   Screen,
   UserState,
@@ -80,30 +79,6 @@ export default function App() {
   const [practiceTheme, setPracticeTheme] = useState<string | null>(null)
   const [theoryTheme, setTheoryTheme] = useState<string | null>(null)
   const [examVariantId, setExamVariantId] = useState<number | null>(null)
-
-  const [health, setHealth] = useState<Health | null>(null)
-  const [healthErr, setHealthErr] = useState<string | null>(null)
-
-  useEffect(() => {
-    let stop = false
-    const tick = async () => {
-      try {
-        const h = await api.health()
-        if (!stop) {
-          setHealth(h)
-          setHealthErr(null)
-        }
-      } catch (e) {
-        if (!stop) setHealthErr(e instanceof Error ? e.message : String(e))
-      }
-    }
-    tick()
-    const id = setInterval(tick, 15000)
-    return () => {
-      stop = true
-      clearInterval(id)
-    }
-  }, [])
 
   // Sync local mastery up to the server whenever we land on the dashboard
   // (after entrance / a lesson / practice). Absolute upsert → idempotent.
@@ -180,7 +155,7 @@ export default function App() {
       <div className="app">
         <header className="app-header">
           <div className="brand">
-            <div className="brand-mark">Ф</div>
+            <div className="brand-mark"><Logo size={40} /></div>
             <div>
               <h1>AI-подготовка к экзамену</h1>
               <div className="subtitle">Базовый ФСФР · адаптивный тренажёр</div>
@@ -289,7 +264,7 @@ export default function App() {
     <div className="app">
       <header className="app-header">
         <div className="brand">
-          <div className="brand-mark">Ф</div>
+          <div className="brand-mark"><Logo size={40} /></div>
           <div>
             <h1>AI-подготовка к экзамену</h1>
             <div className="subtitle">Базовый ФСФР · адаптивный тренажёр</div>
@@ -305,7 +280,6 @@ export default function App() {
               ⚙ Админ-панель
             </a>
           )}
-          <HealthBadge health={health} error={healthErr} />
         </div>
       </header>
       {body}

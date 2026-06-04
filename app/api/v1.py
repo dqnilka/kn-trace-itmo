@@ -342,7 +342,7 @@ async def get_theme_article(
                     "snippet": s.snippet,
                     "excerpt": s.excerpt,
                 }
-                for s in sections[:3]
+                for s in sections[:5]
             ]
             res = generate_summary(
                 exam=exam,

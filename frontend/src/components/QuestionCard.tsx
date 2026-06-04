@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import ExplainBlock from './ExplainBlock'
 import { api } from '../api'
 import { ACTIVE_EXAM_SLUG } from '../state/bank'
+import { decodeUser, getToken } from '../state/auth'
 import { loadUser } from '../state/user'
 import type { BankTask } from '../types'
 
@@ -52,6 +53,8 @@ export default function QuestionCard({
   const [wantExplain, setWantExplain] = useState(false)
   const correctOption = task.options.find((o) => o.is_correct)
   const correctLabel = correctOption?.label ?? ''
+  // Админ видит верный вариант до ответа — для проверки корректности графа.
+  const isAdmin = !!decodeUser(getToken())?.is_admin
 
   useEffect(() => {
     setPicked(null)
@@ -90,7 +93,10 @@ export default function QuestionCard({
   }
 
   const optionClass = (label: string) => {
-    if (!revealed) return picked === label ? 'option picked' : 'option'
+    if (!revealed) {
+      const peek = isAdmin && label === correctLabel ? ' is-correct-peek' : ''
+      return (picked === label ? 'option picked' : 'option') + peek
+    }
     if (label === correctLabel) return 'option correct'
     if (picked === label && label !== correctLabel) return 'option wrong'
     return 'option dimmed'
@@ -115,6 +121,11 @@ export default function QuestionCard({
       </header>
 
       <div className="qcard-body">
+        {isAdmin && !revealed && (
+          <div className="admin-peek-badge" title="Виден только администратору">
+            🔎 режим проверки · верный вариант отмечен
+          </div>
+        )}
         <p className="qcard-text">{task.task_text}</p>
         <ul className="options-list">
           {task.options.map((o) => (
@@ -127,6 +138,9 @@ export default function QuestionCard({
               >
                 <span className="option-label">{o.label}</span>
                 <span className="option-text">{o.text}</span>
+                {isAdmin && !revealed && o.label === correctLabel && (
+                  <span className="opt-correct-tick">✓</span>
+                )}
               </button>
             </li>
           ))}
