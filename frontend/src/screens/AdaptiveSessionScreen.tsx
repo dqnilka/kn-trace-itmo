@@ -147,7 +147,7 @@ export default function AdaptiveSessionScreen({
           <h1 className="screen-title">Не удалось запустить</h1>
           <div className="error">{phase.message}</div>
           <button className="pill pill-primary" onClick={onBack}>
-            ← на дашборд
+            ← на главную
           </button>
         </div>
       </div>
@@ -208,7 +208,7 @@ export default function AdaptiveSessionScreen({
               Ещё одна сессия →
             </button>
             <button className="pill pill-ghost" onClick={onBack}>
-              На дашборд
+              На главную
             </button>
           </div>
         </div>

@@ -323,7 +323,7 @@ export default function ExamVariantScreen({
 
           <div className="actions-row">
             <button className="pill pill-primary" onClick={onBack}>
-              На дашборд →
+              На главную →
             </button>
           </div>
         </div>

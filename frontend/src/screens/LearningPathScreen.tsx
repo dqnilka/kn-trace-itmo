@@ -253,7 +253,7 @@ export default function LearningPathScreen({
           <h1 className="screen-title">Не удалось запустить занятие</h1>
           <div className="error">{phase.message}</div>
           <button className="pill pill-primary" onClick={onBack}>
-            ← на дашборд
+            ← на главную
           </button>
         </div>
       </div>
@@ -295,7 +295,7 @@ export default function LearningPathScreen({
               Ещё одно занятие →
             </button>
             <button className="pill pill-ghost" onClick={onBack}>
-              На дашборд
+              На главную
             </button>
           </div>
         </div>

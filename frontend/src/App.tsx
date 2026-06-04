@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import Logo from './components/Logo'
 import AuthScreen from './screens/AuthScreen'
+import OnboardingScreen from './screens/OnboardingScreen'
 import EntranceTestScreen from './screens/EntranceTestScreen'
 import ResultsScreen from './screens/ResultsScreen'
 import DashboardScreen from './screens/DashboardScreen'
@@ -103,7 +104,7 @@ export default function App() {
     setUser(u)
     setAuthed(true)
     hydrateMastery().finally(() => {
-      setScreen(loadLastResults() != null ? 'dashboard' : 'entrance')
+      setScreen(loadLastResults() != null ? 'dashboard' : 'onboarding')
     })
   }
 
@@ -157,8 +158,7 @@ export default function App() {
           <div className="brand">
             <div className="brand-mark"><Logo size={40} /></div>
             <div>
-              <h1>AI-подготовка к экзамену</h1>
-              <div className="subtitle">Базовый ФСФР · адаптивный тренажёр</div>
+              <div className="brand-title">FinUplift</div>
             </div>
           </div>
         </header>
@@ -168,7 +168,9 @@ export default function App() {
   }
 
   let body: React.ReactNode = null
-  if (screen === 'entrance') {
+  if (screen === 'onboarding') {
+    body = <OnboardingScreen onDone={() => setScreen('entrance')} />
+  } else if (screen === 'entrance') {
     body = (
       <EntranceTestScreen
         user={user}
@@ -266,8 +268,7 @@ export default function App() {
         <div className="brand">
           <div className="brand-mark"><Logo size={40} /></div>
           <div>
-            <h1>AI-подготовка к экзамену</h1>
-            <div className="subtitle">Базовый ФСФР · адаптивный тренажёр</div>
+            <div className="brand-title">FinUplift</div>
           </div>
         </div>
         <div className="header-right">

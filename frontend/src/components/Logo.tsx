@@ -15,8 +15,8 @@ export default function Logo({ size = 36 }: { size?: number }) {
     >
       <defs>
         <linearGradient id="lg-g" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#6366f1" />
-          <stop offset="1" stopColor="#4f46e5" />
+          <stop offset="0" stopColor="#d8784f" />
+          <stop offset="1" stopColor="#c96442" />
         </linearGradient>
       </defs>
       <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#lg-g)" />
