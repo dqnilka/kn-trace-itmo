@@ -13,7 +13,8 @@ Approach (no extra LLM calls):
   1. For each theme, build a query string out of:
        - theme.name
        - chapter.name
-       - top-K concept terms of that theme (from BELONGS_TO_THEME edges)
+       - top-K concept terms the theme's tasks actually test (TESTS_CONCEPT,
+         ranked by edge weight; BELONGS_TO_THEME as fallback)
   2. Embed the query with E5 (same embedder as the API).
   3. Cosine-rank the existing ``md_chunks`` collection (already L2-normalised).
   4. Keep top-N hits per theme with score ≥ ``min_score``.
@@ -110,18 +111,48 @@ def link_theory_to_themes(
             cid = str(n.get("id", "")).removeprefix("co:")
             concept_term_by_id[cid] = str(n.get("term") or cid)
 
-    concepts_by_theme: dict[str, list[str]] = {}
+    # Theme → ranked concept terms. Primary signal is TESTS_CONCEPT: the
+    # concepts the theme's TASKS actually probe (aggregated by edge weight),
+    # so the textbook query — and therefore the retrieved theory — lines up
+    # with the questions the student will see. BELONGS_TO_THEME is kept only as
+    # a fallback for themes whose tasks have no concept links yet.
+    task_theme: dict[str, str] = {}
+    for n in nodes:
+        if n.get("type") == "Task":
+            tk = str(n.get("id", ""))
+            tcode = str(n.get("theme_code") or "")
+            if tk and tcode:
+                task_theme[tk] = tcode
+
+    tested_weight: dict[str, dict[str, float]] = {}
+    belongs_terms: dict[str, list[str]] = {}
     for e in edges:
-        if e.get("type") != "BELONGS_TO_THEME":
-            continue
-        cid = str(e.get("source") or "").removeprefix("co:")
-        tcode = str(e.get("target") or "").removeprefix("th:")
-        if not cid or not tcode:
-            continue
-        term = concept_term_by_id.get(cid)
-        if not term:
-            continue
-        concepts_by_theme.setdefault(tcode, []).append(term)
+        et = e.get("type")
+        if et == "TESTS_CONCEPT":
+            tk = str(e.get("source") or "")
+            cid = str(e.get("target") or "").removeprefix("co:")
+            tcode = task_theme.get(tk)
+            if not tcode or not cid:
+                continue
+            w = float(e.get("weight") or 1.0)
+            tested_weight.setdefault(tcode, {})
+            tested_weight[tcode][cid] = tested_weight[tcode].get(cid, 0.0) + w
+        elif et == "BELONGS_TO_THEME":
+            cid = str(e.get("source") or "").removeprefix("co:")
+            tcode = str(e.get("target") or "").removeprefix("th:")
+            term = concept_term_by_id.get(cid)
+            if cid and tcode and term:
+                belongs_terms.setdefault(tcode, []).append(term)
+
+    concepts_by_theme: dict[str, list[str]] = {}
+    for tcode, weights in tested_weight.items():
+        ranked = sorted(weights, key=lambda c: -weights[c])
+        terms = [concept_term_by_id[c] for c in ranked if c in concept_term_by_id]
+        if terms:
+            concepts_by_theme[tcode] = terms
+    # Fallback for themes without task→concept signal.
+    for tcode, terms in belongs_terms.items():
+        concepts_by_theme.setdefault(tcode, terms)
 
     themes = bank.get("themes") or []
     if not themes:

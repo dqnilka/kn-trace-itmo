@@ -63,6 +63,26 @@ class StrictGraph:
     def n_concepts(self) -> int:
         return sum(1 for n in self.nodes if n.get("type") == "Concept")
 
+    def tested_concepts_for_tasks(
+        self, task_ids: Iterable[int], top_k: int = 12
+    ) -> list[str]:
+        """Concepts ranked by how strongly a set of tasks actually test them.
+
+        Uses the ``TESTS_CONCEPT`` signal (``task_skills.jsonl``) rather than
+        ``BELONGS_TO_THEME``: a concept's weight is the sum of its task↔concept
+        scores across the given tasks. This is what makes theme theory line up
+        with the questions the student will actually see — see
+        ``get_theme_article`` and ``theme_summary``.
+
+        Returns concept_ids (without the ``co:`` prefix), highest weight first.
+        """
+        agg: dict[str, float] = defaultdict(float)
+        for tid in task_ids:
+            for ts in self.skills_by_task.get(int(tid), []):
+                agg[ts.concept_id] += ts.score
+        ranked = sorted(agg, key=lambda c: -agg[c])
+        return ranked[:top_k] if top_k else ranked
+
 
 def _load_task_skills(path: Path) -> list[TaskSkill]:
     if not path.exists():
