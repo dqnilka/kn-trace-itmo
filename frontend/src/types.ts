@@ -65,6 +65,23 @@ export type ServerMastery = {
   themes: Record<string, { asked: number; correct: number }>
 }
 
+export type AdminFeedbackSummary = {
+  totals: { kind: string; rating: string; n: number }[]
+  by_theme: {
+    ref: string
+    theme_name: string
+    likes: number
+    dislikes: number
+  }[]
+  comments: {
+    kind: string
+    ref: string
+    theme_name: string
+    comment: string
+    created_at: string | null
+  }[]
+}
+
 export type WipReason = 'theory' | 'other'
 
 export type ThemeMastery = {

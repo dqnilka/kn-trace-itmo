@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { adminApi } from '../api'
 import type {
   AdminExam,
+  AdminFeedbackSummary,
   AdminIngestOptions,
   AdminRun,
 } from '../types'
@@ -111,10 +112,106 @@ export default function AdminApp() {
         </main>
       </div>
 
+      <FeedbackPanel />
+
       {showCreate && (
         <CreateExamModal onClose={() => setShowCreate(false)} onCreated={refresh} />
       )}
     </div>
+  )
+}
+
+function FeedbackPanel() {
+  const [data, setData] = useState<AdminFeedbackSummary | null>(null)
+  const [err, setErr] = useState<string | null>(null)
+
+  useEffect(() => {
+    adminApi
+      .feedback()
+      .then(setData)
+      .catch((e) => setErr(e instanceof Error ? e.message : String(e)))
+  }, [])
+
+  const count = (kind: string, rating: string) =>
+    data?.totals.find((t) => t.kind === kind && t.rating === rating)?.n ?? 0
+
+  return (
+    <section className="admin-feedback">
+      <h2 className="fb-h">Оценки пользователей</h2>
+      {err && <div className="error">{err}</div>}
+      {!data && !err && <div className="meta">загружаем…</div>}
+      {data && (
+        <>
+          <div className="fb-totals">
+            <div className="fb-stat">
+              <span className="fb-stat-num ok">{count('theory', 'like')}</span>
+              <span className="fb-stat-label">теория · лайки</span>
+            </div>
+            <div className="fb-stat">
+              <span className="fb-stat-num err">{count('theory', 'dislike')}</span>
+              <span className="fb-stat-label">теория · дизлайки</span>
+            </div>
+            <div className="fb-stat">
+              <span className="fb-stat-num ok">{count('lesson', 'like')}</span>
+              <span className="fb-stat-label">занятие · лайки</span>
+            </div>
+            <div className="fb-stat">
+              <span className="fb-stat-num err">{count('lesson', 'dislike')}</span>
+              <span className="fb-stat-label">занятие · дизлайки</span>
+            </div>
+          </div>
+
+          {data.by_theme.length > 0 && (
+            <>
+              <h3 className="fb-sub">Темы с дизлайками теории</h3>
+              <table className="fb-table">
+                <thead>
+                  <tr>
+                    <th>Тема</th>
+                    <th>лайк</th>
+                    <th>дизлайк</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.by_theme
+                    .filter((t) => t.dislikes > 0)
+                    .map((t) => (
+                      <tr key={t.ref}>
+                        <td>
+                          <code>{t.ref}</code> {t.theme_name}
+                        </td>
+                        <td>{t.likes}</td>
+                        <td className="fb-dislike">{t.dislikes}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </>
+          )}
+
+          {data.comments.length > 0 && (
+            <>
+              <h3 className="fb-sub">Комментарии к дизлайкам</h3>
+              <ul className="fb-comments">
+                {data.comments.map((c, i) => (
+                  <li key={i}>
+                    <span className="fb-comment-meta">
+                      {c.kind === 'theory' ? 'теория' : 'занятие'} ·{' '}
+                      {c.theme_name || c.ref}
+                    </span>
+                    <span className="fb-comment-text">{c.comment}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          {data.by_theme.length === 0 && data.comments.length === 0 && (
+            <div className="meta">Пока нет оценок.</div>
+          )}
+        </>
+      )}
+    </section>
   )
 }
 

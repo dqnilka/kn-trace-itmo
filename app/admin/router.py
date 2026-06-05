@@ -347,3 +347,68 @@ async def reload_registry(
         except Exception:  # noqa: BLE001
             pass
     return {"ok": True, "exams": [e.slug for e in exams.all()]}
+
+
+@router.get("/feedback")
+async def feedback_summary(
+    exams: ExamRegistry = Depends(get_exams),
+):
+    """Аналитика оценок (лайки/дизлайки теории и занятий) для админки.
+
+    Возвращает: тоталы по kind+rating, разбивку по темам (с названиями) и
+    последние комментарии к дизлайкам.
+    """
+    from app.core.db import get_pool
+
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        totals = await conn.fetch(
+            "SELECT kind, rating, COUNT(*) AS n FROM feedback GROUP BY kind, rating"
+        )
+        by_theme = await conn.fetch(
+            """SELECT ref,
+                      COUNT(*) FILTER (WHERE rating='like')    AS likes,
+                      COUNT(*) FILTER (WHERE rating='dislike') AS dislikes
+               FROM feedback WHERE kind='theory' AND ref <> ''
+               GROUP BY ref ORDER BY dislikes DESC, likes DESC LIMIT 100"""
+        )
+        comments = await conn.fetch(
+            """SELECT kind, ref, comment, created_at FROM feedback
+               WHERE rating='dislike' AND comment IS NOT NULL AND comment <> ''
+               ORDER BY created_at DESC LIMIT 100"""
+        )
+
+    # Названия тем по коду — из банка опубликованного экзамена.
+    names: dict[str, str] = {}
+    try:
+        from app.exams.registry import load_bank
+
+        for e in exams.all():
+            bank = load_bank(e)
+            for t in bank.get("themes", []):
+                names[str(t.get("code"))] = str(t.get("name") or t.get("code"))
+    except Exception:  # noqa: BLE001
+        pass
+
+    return {
+        "totals": [dict(r) for r in totals],
+        "by_theme": [
+            {
+                "ref": r["ref"],
+                "theme_name": names.get(r["ref"], r["ref"]),
+                "likes": r["likes"],
+                "dislikes": r["dislikes"],
+            }
+            for r in by_theme
+        ],
+        "comments": [
+            {
+                "kind": r["kind"],
+                "ref": r["ref"],
+                "theme_name": names.get(r["ref"], r["ref"]),
+                "comment": r["comment"],
+                "created_at": r["created_at"].isoformat() if r["created_at"] else None,
+            }
+            for r in comments
+        ],
+    }
