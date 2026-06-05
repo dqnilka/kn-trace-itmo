@@ -116,21 +116,6 @@ export default function TheoryScreen({
               {data.chapter_name ? `${data.chapter_name} · ` : ''}Тема {data.theme_code}
             </div>
             <h1 className="theory-article-title">{data.theme_name}</h1>
-            <div className="theory-article-meta">
-              {data.task_count > 0 && (
-                <span className="chip chip-soft">{data.task_count} задач в банке</span>
-              )}
-              {data.concepts.length > 0 && (
-                <span className="chip chip-soft">{data.concepts.length} понятий</span>
-              )}
-              {mastery.confidence === 'ok' && mastery.pct != null && (
-                <span
-                  className={`chip ${mastery.pct >= 0.75 ? 'chip-ok' : 'chip-muted'}`}
-                >
-                  твой уровень — {Math.round(mastery.pct * 100)}%
-                </span>
-              )}
-            </div>
           </header>
 
           {hasSummary ? (
@@ -146,53 +131,6 @@ export default function TheoryScreen({
                 на ошибках разберём каждый вариант.
               </p>
             </section>
-          )}
-
-          {conceptsWithDef.length > 0 && (
-            <section className="theory-concepts">
-              <h2 className="theory-section-title">Понятия темы</h2>
-              <div className="concept-grid">
-                {conceptsWithDef.slice(0, 12).map((c) => (
-                  <ConceptCard
-                    key={c.id}
-                    concept={c}
-                    open={!!openConcepts[c.id]}
-                    onToggle={() =>
-                      setOpenConcepts((p) => ({ ...p, [c.id]: !p[c.id] }))
-                    }
-                  />
-                ))}
-              </div>
-              {conceptsWithDef.length > 12 && (
-                <p className="muted small">
-                  И ещё {conceptsWithDef.length - 12} понятий — встретишь их в задачах.
-                </p>
-              )}
-            </section>
-          )}
-
-          {data.sections.length > 0 && (
-            <details
-              className="theory-raw-sections"
-              open={showRaw}
-              onToggle={(e) => setShowRaw((e.target as HTMLDetailsElement).open)}
-            >
-              <summary>
-                Показать оригинальные фрагменты учебника ({data.sections.length})
-              </summary>
-              <div className="theory-raw-body">
-                {data.sections.map((s, i) => (
-                  <section key={i} className="theory-raw-section">
-                    <div className="theory-raw-path">{s.section_path}</div>
-                    <div className="theory-raw-text">
-                      <SafeMarkdown>
-                        {(s.excerpt || s.snippet).slice(0, 2000)}
-                      </SafeMarkdown>
-                    </div>
-                  </section>
-                ))}
-              </div>
-            </details>
           )}
         </article>
 

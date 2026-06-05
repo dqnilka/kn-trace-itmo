@@ -333,7 +333,7 @@ export default function LearningPathScreen({
             ← прервать
           </button>
           <div className="meta">
-            Шаг {phase.idx + 1} из {phase.units.length} · теория
+            Шаг {phase.idx + 1} из {phase.units.length}
           </div>
         </div>
         <div className="screen-body narrow">
@@ -370,21 +370,6 @@ export default function LearningPathScreen({
                   </SafeMarkdown>
                 </div>
               )}
-              {content && !content.summary_md && content.sections.length > 0 && (
-                <details className="theory-raw">
-                  <summary>Показать сырой фрагмент из учебника</summary>
-                  {content.sections.map((s, i) => (
-                    <section key={i} className="learn-section">
-                      <div className="learn-section-path">{s.section_path}</div>
-                      <div className="learn-section-body theory">
-                        <SafeMarkdown>
-                          {s.excerpt.slice(0, 1200)}
-                        </SafeMarkdown>
-                      </div>
-                    </section>
-                  ))}
-                </details>
-              )}
             </div>
             <footer className="learn-footer">
               <div className="learn-note">
@@ -395,6 +380,13 @@ export default function LearningPathScreen({
               </button>
             </footer>
           </article>
+          {!loading && !phase.theoryError && (
+            <RateWidget
+              kind="theory"
+              refId={unit.theme.code}
+              label="Полезна ли теория?"
+            />
+          )}
         </div>
         {exitDialog}
       </div>
@@ -407,7 +399,7 @@ export default function LearningPathScreen({
   return (
     <div className="screen">
       <div className="screen-head">
-        <button className="link-button" onClick={onBack}>
+        <button className="link-button" onClick={() => setConfirmExit(true)}>
           ← прервать
         </button>
         <div className="meta">
@@ -417,9 +409,6 @@ export default function LearningPathScreen({
       </div>
       <div className="screen-body narrow">
         <PathProgress units={phase.units} curIdx={phase.idx} curStep="practice" />
-        <div className="learn-eyebrow learn-context">
-          Сейчас: <strong>{unit.theme.name}</strong>
-        </div>
         <QuestionCard
           key={task.id}
           task={task}
@@ -455,12 +444,6 @@ function PathProgress({
             <span className="path-step-circle">{i + 1}</span>
             <div className="path-step-meta">
               <div className="path-step-name">{u.theme.name}</div>
-              {i === curIdx && (
-                <div className="path-step-sub">
-                  <Icon name={curStep === 'theory' ? 'theory' : 'practice'} size={13} />
-                  {curStep === 'theory' ? 'теория' : 'практика'}
-                </div>
-              )}
             </div>
           </li>
         )

@@ -327,7 +327,7 @@ async def get_theme_article(
         for t in theme_tasks[:6]
     ]
     concept_sample = [
-        {"term": c.term, "definition": c.definition} for c in concepts_out[:10]
+        {"term": c.term, "definition": c.definition} for c in concepts_out[:6]
     ]
 
     # LLM-clean summary, grounded on the theme's tasks + tested concepts (cached).
