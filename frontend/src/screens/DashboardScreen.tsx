@@ -36,10 +36,10 @@ const VARIANTS = [
 const PASS_THRESHOLD = 80 // % правильных ответов = условный «сдашь экзамен»
 
 function pctColor(pct: number | null): string {
-  if (pct == null) return 'var(--fg-3)'
-  if (pct >= 0.75) return '#16a34a'
-  if (pct >= 0.5) return '#f59e0b'
-  return '#ef4444'
+  if (pct == null) return 'var(--fg-3)' // нет данных — нейтральный
+  if (pct >= 0.75) return 'var(--ok)'
+  if (pct >= 0.5) return 'var(--warn)'
+  return 'var(--accent)' // низкий — clay (зона фокуса), без тревожного красного
 }
 
 // Knowledge level on a 0-100 "will-I-pass" scale.

@@ -1,75 +1,66 @@
-import { useState } from 'react'
 import Logo from '../components/Logo'
 import Icon, { type IconName } from '../components/ui/Icon'
+import Button from '../components/ui/Button'
 
 /**
- * Короткий онбординг (3 шага) после регистрации — мягкий вход перед входным
- * тестом. Без сбора данных: только знакомство с продуктом и как он работает.
+ * Приветственный экран после регистрации — один содержательный шаг:
+ * ценностный заголовок + три понятных пункта «как это работает» + CTA на
+ * входной тест. Без пустоты и лишних иконок.
  */
-const STEPS: { icon: IconName; title: string; text: string }[] = [
+const POINTS: { icon: IconName; title: string; text: string }[] = [
   {
     icon: 'target',
-    title: 'Добро пожаловать в FinUplift',
-    text: 'Адаптивный тренажёр для подготовки к экзамену ФСФР. Доведём до проходного балла по твоим слабым темам.',
+    title: 'Входной тест за 5 минут',
+    text: 'Покрывает все 13 разделов и сразу показывает, где у тебя пробелы.',
   },
   {
-    icon: 'layers',
-    title: 'Как это работает',
-    text: 'Короткий входной тест покажет пробелы. Дальше — занятия: сжатая теория под конкретные задания, потом практика с разбором ошибок.',
+    icon: 'theory',
+    title: 'Теория под конкретные задания',
+    text: 'Короткий разбор именно того, что спрашивают в задачах темы.',
   },
   {
-    icon: 'check',
-    title: 'Учим то, что нужно',
-    text: 'Алгоритм сам выбирает темы с наибольшими пробелами и отслеживает прогресс. Начнём с короткого теста — это займёт пару минут.',
+    icon: 'practice',
+    title: 'Практика и прогресс',
+    text: 'Решаешь, видишь разбор ошибок и рост уровня по каждой теме.',
   },
 ]
 
 export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
-  const [step, setStep] = useState(0)
-  const last = step === STEPS.length - 1
-  const s = STEPS[step]
-
   return (
     <div className="screen">
       <div className="screen-body centered">
-        <div className="onb-card">
-          <div className="onb-logo">
-            <Logo size={48} />
+        <div className="welcome-card">
+          <div className="welcome-brand">
+            <Logo size={34} />
+            <span className="welcome-brand-name">FinUplift</span>
           </div>
-          <div className="onb-icon" aria-hidden="true">
-            <Icon name={s.icon} size={26} />
-          </div>
-          <h1 className="screen-title" style={{ textAlign: 'center' }}>
-            {s.title}
-          </h1>
-          <p className="screen-subtitle" style={{ textAlign: 'center' }}>
-            {s.text}
-          </p>
 
-          <div className="onb-dots" role="tablist" aria-label="Шаги">
-            {STEPS.map((_, i) => (
-              <span key={i} className={`onb-dot ${i === step ? 'active' : ''}`} />
+          <div className="welcome-eyebrow">Подготовка к экзамену ФСФР</div>
+          <h1 className="welcome-title">
+            Учим только то, где у тебя пробелы — до проходного балла
+          </h1>
+
+          <div className="welcome-points">
+            {POINTS.map((p) => (
+              <div key={p.title} className="welcome-point">
+                <span className="welcome-point-icon">
+                  <Icon name={p.icon} size={20} />
+                </span>
+                <div>
+                  <div className="welcome-point-title">{p.title}</div>
+                  <div className="welcome-point-text">{p.text}</div>
+                </div>
+              </div>
             ))}
           </div>
 
-          <div className="actions-row" style={{ marginTop: 18 }}>
-            {!last ? (
-              <>
-                <button className="pill pill-ghost" onClick={onDone}>
-                  Пропустить
-                </button>
-                <button
-                  className="pill pill-primary big"
-                  onClick={() => setStep((x) => x + 1)}
-                >
-                  Далее →
-                </button>
-              </>
-            ) : (
-              <button className="pill pill-primary big" onClick={onDone}>
-                Пройти входной тест →
-              </button>
-            )}
+          <div className="welcome-actions">
+            <Button size="big" full onClick={onDone}>
+              Пройти входной тест →
+            </Button>
+            <button className="link-button welcome-skip" onClick={onDone}>
+              Пропустить пока
+            </button>
           </div>
         </div>
       </div>
