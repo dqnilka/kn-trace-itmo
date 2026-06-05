@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { api } from '../api'
 import InfoTip from '../components/InfoTip'
 import Icon from '../components/ui/Icon'
+import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { ACTIVE_EXAM_SLUG, buildIndex, loadBank } from '../state/bank'
 import {
   CHAPTER_MIN_CONFIDENT,
@@ -70,6 +71,7 @@ export default function DashboardScreen({
   hasEntranceResults: boolean
 }) {
   const [tab, setTab] = useState<Tab>('topics')
+  const [confirmRetake, setConfirmRetake] = useState(false)
   const [bank, setBank] = useState<ExamBank | null>(null)
   const [mastery, setMastery] = useState<MasteryStore>(() => loadMastery())
   const [bktMastery, setBktMastery] = useState<MasteryResponse | null>(null)
@@ -176,13 +178,27 @@ export default function DashboardScreen({
 
   return (
     <div className="screen dashboard-screen">
+      <ConfirmDialog
+        open={confirmRetake}
+        title="Пройти входной тест заново?"
+        text="Текущая карта знаний пересчитается по новым ответам."
+        confirmLabel="Пройти заново"
+        cancelLabel="Отмена"
+        onConfirm={onRetakeEntrance}
+        onCancel={() => setConfirmRetake(false)}
+      />
       <div className="page-head">
         <div>
           <div className="page-eyebrow">Привет, {user.name}</div>
           <h1 className="page-title">Тренажёр</h1>
         </div>
         <div className="page-actions">
-          <button className="link-button" onClick={onRetakeEntrance}>
+          <button
+            className="link-button"
+            onClick={() =>
+              hasEntranceResults ? setConfirmRetake(true) : onRetakeEntrance()
+            }
+          >
             {hasEntranceResults ? 'пройти входной заново' : 'пройти входной'}
           </button>
           <button className="link-button" onClick={onLogout}>
@@ -201,24 +217,8 @@ export default function DashboardScreen({
         </button>
       </div>
 
-      {!hasEntranceResults && (
-        <div className="banner-warn">
-          <div className="banner-emoji"><Icon name="alert" size={20} /></div>
-          <div className="banner-body">
-            <strong>Ты пропустил входной тест.</strong> Без него тренажёр не
-            знает, какие темы у тебя слабые — рекомендации будут стартовать с
-            нуля. Это нормально, но первые 20-25 ответов наберутся не так
-            точечно.
-          </div>
-          <button className="pill pill-primary" onClick={onRetakeEntrance}>
-            Пройти входной →
-          </button>
-        </div>
-      )}
-
       {/* Hero CTA — главный путь обучения */}
       <div className="hero-card">
-        <div className="hero-emoji"><Icon name="target" size={30} /></div>
         <div className="hero-body">
           <div className="hero-eyebrow">Сегодняшнее занятие</div>
           <h2 className="hero-title">
@@ -227,9 +227,14 @@ export default function DashboardScreen({
               : 'Адаптивный курс'}
           </h2>
           <p className="hero-sub">
-            Сначала короткая теория, затем 2-3 практики. Идём по оптимальной
-            траектории через 3-5 тем, где у тебя самые большие пробелы.
+            Сначала короткая теория, затем 2–3 практики. Идём по темам, где у
+            тебя самые большие пробелы.
           </p>
+          {!hasEntranceResults && (
+            <button className="hero-hint" onClick={onRetakeEntrance}>
+              Пройти входной тест — чтобы точнее найти слабые темы
+            </button>
+          )}
         </div>
         <button className="pill pill-primary big" onClick={onAdaptive}>
           Начать занятие →

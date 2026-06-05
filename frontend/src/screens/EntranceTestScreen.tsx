@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import QuestionCard from '../components/QuestionCard'
+import Icon from '../components/ui/Icon'
 import { buildIndex, loadBank, sampleEntrance } from '../state/bank'
 import type {
   BankAnswer,
@@ -124,7 +125,9 @@ export default function EntranceTestScreen({
   const skipModal = showSkipModal && onSkip ? (
     <div className="modal-overlay" onClick={() => setShowSkipModal(false)}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div style={{ fontSize: 36, marginBottom: 8 }}>⚠️</div>
+        <div style={{ color: 'var(--warn)', marginBottom: 8 }}>
+          <Icon name="alert" size={28} />
+        </div>
         <h2>Пропустить входной тест?</h2>
         <p style={{ color: 'var(--fg-2)', lineHeight: 1.6, marginTop: 8 }}>
           Без входного тренажёр не знает твою стартовую базу — рекомендации

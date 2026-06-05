@@ -14,7 +14,7 @@ export default function ProgressRing({
   value: number // 0..1
   size?: number
   stroke?: number
-  tone?: 'accent' | 'ok' | 'warn' | 'err' | 'ink'
+  tone?: 'accent' | 'ok' | 'warn' | 'err' | 'ink' | 'neutral'
   label?: string
 }) {
   const [v, setV] = useState(0)
@@ -35,7 +35,7 @@ export default function ProgressRing({
 
   const r = (size - stroke) / 2
   const circ = 2 * Math.PI * r
-  const color = `var(--${tone === 'ink' ? 'fg' : tone})`
+  const color = `var(--${tone === 'ink' ? 'fg' : tone === 'neutral' ? 'fg-3' : tone})`
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="pring">
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--bg-3)" strokeWidth={stroke} />
