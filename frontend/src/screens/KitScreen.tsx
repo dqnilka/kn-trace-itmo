@@ -3,6 +3,8 @@ import Card from '../components/ui/Card'
 import Field from '../components/ui/Field'
 import { Skeleton, TheorySkeleton } from '../components/ui/Skeleton'
 import BrandLoader from '../components/ui/BrandLoader'
+import ProgressRing from '../components/ui/ProgressRing'
+import Icon, { type IconName } from '../components/ui/Icon'
 import Logo from '../components/Logo'
 
 /** Витрина дизайн-системы FinUplift — открывается по ?kit=1. */
@@ -66,6 +68,26 @@ export default function KitScreen() {
           <Field label="Пароль" type="password" placeholder="минимум 6 символов" />
           <Field label="С ошибкой" placeholder="неверно" error="Что-то не так" />
         </Card>
+
+        <h2 className="kit-h">Кольца прогресса (анимация заполнения)</h2>
+        <div className="kit-row" style={{ gap: 22 }}>
+          <ProgressRing value={0.84} tone="accent" size={84} />
+          <ProgressRing value={0.62} tone="ok" size={84} />
+          <ProgressRing value={0.4} tone="warn" size={84} />
+          <ProgressRing value={0.18} tone="err" size={84} />
+          <ProgressRing value={0.55} tone="ink" size={84} />
+        </div>
+
+        <h2 className="kit-h">Иконки (свои, без эмодзи)</h2>
+        <div className="kit-row" style={{ gap: 18, color: 'var(--fg)' }}>
+          {(
+            ['theory', 'practice', 'target', 'search', 'idea', 'alert', 'check', 'layers', 'doc', 'settings', 'chevron'] as IconName[]
+          ).map((n) => (
+            <span key={n} title={n} style={{ display: 'inline-flex' }}>
+              <Icon name={n} size={22} />
+            </span>
+          ))}
+        </div>
 
         <h2 className="kit-h">Чипы</h2>
         <div className="kit-row">
