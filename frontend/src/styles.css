@@ -52,8 +52,8 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--fg);
-  font-size: 15px;
-  line-height: 1.5;
+  font-size: 16px;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -2888,8 +2888,6 @@ details[open] summary {
 
 /* === Mastery rings (Duolingo-like completion screen) === */
 .mastery-rings {
-  --ring-up: #2fbf71;
-  --ring-down: #e0654f;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2900,31 +2898,40 @@ details[open] summary {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 18px;
+  gap: 22px;
 }
 .mr-theme {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  width: 96px;
+  width: 110px;
 }
 .mr-ring {
-  position: relative;
-  color: var(--fg, #fff);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
 }
 .mr-ring-pct {
   font-weight: 700;
+  fill: var(--fg);
+  font-family: var(--font-display);
 }
 .mr-delta {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
-  background: rgba(0, 0, 0, 0.35);
-  border-radius: 10px;
-  padding: 1px 6px;
+  font-variant-numeric: tabular-nums;
+}
+.mr-delta.mr-up {
+  color: var(--ok);
+}
+.mr-delta.mr-down {
+  color: var(--err);
+}
+.mr-delta.mr-same {
+  color: var(--fg-3);
+  font-weight: 600;
 }
 .mr-theme-label {
   font-size: 11px;

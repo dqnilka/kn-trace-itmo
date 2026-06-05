@@ -3,7 +3,7 @@ import Card from '../components/ui/Card'
 import Field from '../components/ui/Field'
 import { Skeleton, TheorySkeleton } from '../components/ui/Skeleton'
 import BrandLoader from '../components/ui/BrandLoader'
-import ProgressRing from '../components/ui/ProgressRing'
+import MasteryRings from '../components/MasteryRings'
 import Icon, { type IconName } from '../components/ui/Icon'
 import Logo from '../components/Logo'
 
@@ -43,10 +43,10 @@ export default function KitScreen() {
 
         <h2 className="kit-h">Типографика</h2>
         <Card framed className="kit-type">
-          <h1 className="screen-title">Geologica Display H1</h1>
+          <h1 className="screen-title">Source Serif 4 — заголовок</h1>
           <h2 className="theory-section-title">Заголовок секции</h2>
           <p>
-            Inter body — основной текст. Острые углы, хайрлайн-бордеры,
+            Source Sans 3 — основной текст. Острые углы, хайрлайн-бордеры,
             тёплая палитра. Спокойно и по делу.
           </p>
           <p className="meta">caption / meta — вспомогательный текст</p>
@@ -69,14 +69,17 @@ export default function KitScreen() {
           <Field label="С ошибкой" placeholder="неверно" error="Что-то не так" />
         </Card>
 
-        <h2 className="kit-h">Кольца прогресса (анимация заполнения)</h2>
-        <div className="kit-row" style={{ gap: 22 }}>
-          <ProgressRing value={0.84} tone="accent" size={84} />
-          <ProgressRing value={0.62} tone="ok" size={84} />
-          <ProgressRing value={0.4} tone="warn" size={84} />
-          <ProgressRing value={0.18} tone="err" size={84} />
-          <ProgressRing value={0.55} tone="ink" size={84} />
-        </div>
+        <h2 className="kit-h">Прогресс после занятия — рост / падение / без изменений</h2>
+        <Card framed>
+          <MasteryRings
+            themes={[
+              { label: 'Тема выросла', from: 0.45, to: 0.7 },
+              { label: 'Тема просела', from: 0.6, to: 0.4 },
+              { label: 'Без изменений', from: 0.5, to: 0.5 },
+            ]}
+            overall={{ label: 'Общий уровень', from: 0.52, to: 0.61 }}
+          />
+        </Card>
 
         <h2 className="kit-h">Иконки (свои, без эмодзи)</h2>
         <div className="kit-row" style={{ gap: 18, color: 'var(--fg)' }}>
