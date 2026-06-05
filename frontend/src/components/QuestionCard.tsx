@@ -161,9 +161,7 @@ export default function QuestionCard({
             <div
               className={`feedback-inline ${picked === correctLabel ? 'ok' : 'err'}`}
             >
-              {picked === correctLabel
-                ? 'Верно!'
-                : 'Неверно — верный вариант выделен зелёным'}
+              {picked === correctLabel ? 'Верно!' : 'Неверно'}
             </div>
             {enableExplain && picked !== correctLabel && !wantExplain && (
               <button className="pill pill-ghost" onClick={() => setWantExplain(true)}>
