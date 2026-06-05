@@ -1,28 +1,23 @@
 import { useEffect, useState } from 'react'
 
 /**
- * Минималистичная Duolingo-like анимация после занятия.
+ * Анимация изменения уровня знаний после занятия.
  *
- * На каждую пройденную тему — кольцо, которое одновременно с остальными
- * доезжает от прежнего уровня знания (`from`) к новому (`to`). Затем большое
- * общее кольцо плавно меняется — растёт или падает.
- *
- * Чистый SVG + анимация через requestAnimationFrame по `stroke-dashoffset`.
- * Никаких зависимостей.
+ * Для каждой темы (и общего уровня) показываем кольцо:
+ *   • бледная «призрачная» дуга — каким уровень БЫЛ до занятия (`from`);
+ *   • яркая дуга едет от `from` к `to` — видно, вырос балл или упал;
+ *   • цвет: рост → зелёный, падение → красный, без изменений → нейтральный;
+ *   • снизу — крупная дельта со стрелкой (▲ +12 / ▼ −5 / — без изменений).
  */
 
 export type RingDatum = {
   label: string
-  from: number // 0..1 — уровень до занятия
-  to: number // 0..1 — уровень после
+  from: number // 0..1 — до занятия
+  to: number // 0..1 — после
 }
 
-function easeOutCubic(t: number): number {
-  return 1 - Math.pow(1 - t, 3)
-}
-
-function useAnimatedValue(target: number, duration: number, delay: number): number {
-  const [v, setV] = useState(0)
+function useAnimatedBetween(from: number, to: number, duration: number, delay: number): number {
+  const [v, setV] = useState(from)
   useEffect(() => {
     let raf = 0
     let start: number | null = null
@@ -34,13 +29,26 @@ function useAnimatedValue(target: number, duration: number, delay: number): numb
         return
       }
       const p = Math.min(1, elapsed / duration)
-      setV(easeOutCubic(p) * target)
+      const eased = 1 - Math.pow(1 - p, 3)
+      setV(from + (to - from) * eased)
       if (p < 1) raf = requestAnimationFrame(tick)
     }
+    setV(from)
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [target, duration, delay])
+  }, [from, to, duration, delay])
   return v
+}
+
+type Dir = 'up' | 'down' | 'same'
+function dirOf(from: number, to: number): Dir {
+  const d = Math.round(to * 100) - Math.round(from * 100)
+  return d > 0 ? 'up' : d < 0 ? 'down' : 'same'
+}
+const TONE: Record<Dir, string> = {
+  up: 'var(--ok)',
+  down: 'var(--err)',
+  same: 'var(--fg-3)',
 }
 
 function Ring({
@@ -48,35 +56,39 @@ function Ring({
   size,
   stroke,
   delay,
-  showDelta,
 }: {
   datum: RingDatum
   size: number
   stroke: number
   delay: number
-  showDelta?: boolean
 }) {
   const r = (size - stroke) / 2
   const circ = 2 * Math.PI * r
-  // Анимируем «прирост» от from к to: само кольцо едет к `to`, а дельту
-  // подсвечиваем цветом.
-  const animated = useAnimatedValue(datum.to, 900, delay)
-  const pct = Math.round(animated * 100)
-  const delta = Math.round((datum.to - datum.from) * 100)
-  const up = datum.to >= datum.from
-  const color = up ? 'var(--ring-up, #2fbf71)' : 'var(--ring-down, #e0654f)'
-  const dash = circ * (1 - animated)
+  const animated = useAnimatedBetween(datum.from, datum.to, 1000, delay)
+  const dir = dirOf(datum.from, datum.to)
+  const color = TONE[dir]
+  const deltaPts = Math.round(datum.to * 100) - Math.round(datum.from * 100)
   return (
     <div className="mr-ring" style={{ width: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          fill="none"
-          stroke="rgba(255,255,255,0.10)"
-          strokeWidth={stroke}
-        />
+        {/* трек */}
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--bg-3)" strokeWidth={stroke} />
+        {/* призрак «было» */}
+        {dir !== 'same' && (
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={r}
+            fill="none"
+            stroke="var(--border-strong)"
+            strokeWidth={stroke}
+            strokeLinecap="butt"
+            strokeDasharray={circ}
+            strokeDashoffset={circ * (1 - datum.from)}
+            transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          />
+        )}
+        {/* активная дуга — едет from→to */}
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -86,7 +98,7 @@ function Ring({
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={circ}
-          strokeDashoffset={dash}
+          strokeDashoffset={circ * (1 - animated)}
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
         <text
@@ -95,17 +107,16 @@ function Ring({
           textAnchor="middle"
           dominantBaseline="central"
           className="mr-ring-pct"
-          fontSize={size * 0.24}
-          fill="currentColor"
+          fontSize={size * 0.26}
         >
-          {pct}%
+          {Math.round(animated * 100)}%
         </text>
       </svg>
-      {showDelta && delta !== 0 && (
-        <div className="mr-delta" style={{ color }}>
-          {delta > 0 ? `+${delta}` : delta}
-        </div>
-      )}
+      <div className={`mr-delta mr-${dir}`}>
+        {dir === 'up' && `▲ +${deltaPts}`}
+        {dir === 'down' && `▼ ${deltaPts}`}
+        {dir === 'same' && '— без изменений'}
+      </div>
     </div>
   )
 }
@@ -122,7 +133,7 @@ export default function MasteryRings({
       <div className="mr-themes">
         {themes.map((d, i) => (
           <div key={i} className="mr-theme">
-            <Ring datum={d} size={84} stroke={9} delay={i * 120} showDelta />
+            <Ring datum={d} size={88} stroke={9} delay={i * 160} />
             <div className="mr-theme-label" title={d.label}>
               {d.label}
             </div>
@@ -130,13 +141,7 @@ export default function MasteryRings({
         ))}
       </div>
       <div className="mr-overall">
-        <Ring
-          datum={overall}
-          size={150}
-          stroke={14}
-          delay={themes.length * 120 + 250}
-          showDelta
-        />
+        <Ring datum={overall} size={156} stroke={13} delay={themes.length * 160 + 300} />
         <div className="mr-overall-label">Общий уровень знаний</div>
       </div>
     </div>
