@@ -104,13 +104,13 @@ export default function App() {
     saveUser(u)
     setUser(u)
     setAuthed(true)
-    hydrateMastery().finally(() => {
-      // «Уже начинал» = есть результаты входного ИЛИ серверный прогресс по темам.
-      // Иначе новый пользователь → онбординг → входной тест.
-      const started =
-        loadLastResults() != null || Object.keys(loadMastery()).length > 0
-      setScreen(started ? 'dashboard' : 'onboarding')
-    })
+    // Экран выбираем СИНХРОННО, чтобы медленная гидрация не перебросила
+    // пользователя позже (раньше это выкидывало из начатого входного теста).
+    const started =
+      loadLastResults() != null || Object.keys(loadMastery()).length > 0
+    setScreen(started ? 'dashboard' : 'onboarding')
+    // Подтянуть серверный прогресс в фоне — без смены экрана.
+    void hydrateMastery()
   }
 
   const onEntranceDone = (summary: BankEntranceResult) => {

@@ -959,7 +959,7 @@ a {
 }
 
 .chapter-card.weak {
-  border-color: rgba(239, 68, 68, 0.3);
+  border-color: rgba(201,100,66,0.45);
 }
 
 .chapter-head {
@@ -1133,19 +1133,19 @@ a {
 
 .badge-ok {
   color: var(--ok);
-  border-color: rgba(22, 163, 74, 0.3);
+  border-color: var(--border-strong);
   background: var(--ok-soft);
 }
 
 .badge-warn {
   color: var(--warn);
-  border-color: rgba(245, 158, 11, 0.3);
+  border-color: var(--border-strong);
   background: var(--warn-soft);
 }
 
 .badge-error {
   color: var(--err);
-  border-color: rgba(239, 68, 68, 0.3);
+  border-color: rgba(201,100,66,0.45);
   background: var(--err-soft);
 }
 
@@ -1157,7 +1157,7 @@ a {
 
 .error {
   background: var(--err-soft);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  border: 1px solid rgba(201,100,66,0.45);
   color: var(--err);
   padding: 12px 14px;
   border-radius: 10px;
@@ -1691,9 +1691,9 @@ details[open] summary {
 
 /* Chapter & theme states (left border accent) */
 
-.chapter-card.strong { border-color: rgba(22, 163, 74, 0.35); }
-.chapter-card.medium { border-color: rgba(245, 158, 11, 0.35); }
-.chapter-card.weak { border-color: rgba(239, 68, 68, 0.35); }
+.chapter-card.strong { border-color: var(--border-strong); }
+.chapter-card.medium { border-color: var(--border-strong); }
+.chapter-card.weak { border-color: rgba(201,100,66,0.45); }
 .chapter-card.untouched { border-color: var(--border); }
 
 .theme-card.strong { border-left: 3px solid var(--ok); padding-left: 11px; }
@@ -1768,9 +1768,9 @@ details[open] summary {
   font-size: 13px;
 }
 
-.exam-chapter-row.strong { border-color: rgba(22, 163, 74, 0.3); }
-.exam-chapter-row.medium { border-color: rgba(245, 158, 11, 0.3); }
-.exam-chapter-row.weak { border-color: rgba(239, 68, 68, 0.3); }
+.exam-chapter-row.strong { border-color: var(--border-strong); }
+.exam-chapter-row.medium { border-color: var(--border-strong); }
+.exam-chapter-row.weak { border-color: rgba(201,100,66,0.45); }
 
 .exam-chapter-row .muted {
   color: var(--fg-3);
@@ -1830,9 +1830,9 @@ details[open] summary {
   font-size: 13px;
 }
 
-.adaptive-theme-row.strong { border-color: rgba(22, 163, 74, 0.35); }
-.adaptive-theme-row.medium { border-color: rgba(245, 158, 11, 0.35); }
-.adaptive-theme-row.weak { border-color: rgba(239, 68, 68, 0.35); }
+.adaptive-theme-row.strong { border-color: var(--border-strong); }
+.adaptive-theme-row.medium { border-color: var(--border-strong); }
+.adaptive-theme-row.weak { border-color: rgba(201,100,66,0.45); }
 
 .adaptive-theme-name {
   text-align: left;
@@ -2743,7 +2743,7 @@ details[open] summary {
 
 .path-step.done {
   background: rgba(22, 163, 74, 0.06);
-  border-color: rgba(22, 163, 74, 0.3);
+  border-color: var(--border-strong);
 }
 
 .path-step.active {
@@ -3356,7 +3356,11 @@ details[open] summary {
 .theme-card,
 .theme-list,
 .qcard,
-.options-list .option {
+.options-list .option,
+.auth-tabs,
+.auth-tab,
+.modal,
+.welcome-point-icon {
   border-radius: 0 !important;
 }
 
@@ -3401,6 +3405,84 @@ details[open] summary {
   display: inline-flex;
   align-items: center;
   color: var(--accent);
+}
+
+/* --- Приветственный экран (онбординг) --- */
+.welcome-card {
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  background: var(--bg-2);
+  border: 1.5px solid var(--fg);
+  box-shadow: var(--shadow);
+  padding: 30px 30px 28px;
+  text-align: left;
+}
+.welcome-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+.welcome-brand-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 19px;
+}
+.welcome-eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.welcome-title {
+  font-family: var(--font-display);
+  font-size: 25px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 8px 0 22px;
+}
+.welcome-points {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.welcome-point {
+  display: flex;
+  gap: 13px;
+  align-items: flex-start;
+}
+.welcome-point-icon {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+.welcome-point-title {
+  font-weight: 700;
+  font-size: 15px;
+}
+.welcome-point-text {
+  font-size: 13.5px;
+  color: var(--fg-2);
+  line-height: 1.5;
+  margin-top: 2px;
+}
+.welcome-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.welcome-skip {
+  font-size: 13px;
 }
 
 /* --- Загрузка теории в занятии --- */
