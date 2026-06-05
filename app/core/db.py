@@ -41,6 +41,18 @@ CREATE TABLE IF NOT EXISTS user_mastery (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (user_id, exam_slug, theme_code)
 );
+
+-- Оценки контента: теория, занятие. rating: 'like' | 'dislike'.
+CREATE TABLE IF NOT EXISTS feedback (
+    id         BIGSERIAL PRIMARY KEY,
+    user_id    BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    kind       TEXT NOT NULL,            -- 'theory' | 'lesson'
+    ref        TEXT NOT NULL DEFAULT '', -- theme_code / id занятия
+    rating     TEXT NOT NULL,            -- 'like' | 'dislike'
+    comment    TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS feedback_kind_idx ON feedback (kind, rating);
 """
 
 

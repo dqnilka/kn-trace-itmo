@@ -14,6 +14,8 @@ export type IconName =
   | 'layers'
   | 'doc'
   | 'chevron'
+  | 'like'
+  | 'dislike'
 
 export default function Icon({
   name,
@@ -113,6 +115,20 @@ export default function Icon({
       return (
         <svg {...p}>
           <path d="M6 9l6 6 6-6" />
+        </svg>
+      )
+    case 'like':
+      return (
+        <svg {...p}>
+          <path d="M7 10v10H4V10z" />
+          <path d="M7 10l4-7c1.2 0 2 1 2 2.2L12 9h5.5c1.2 0 2 1 1.8 2.2l-1.2 7c-.15.9-.9 1.8-2 1.8H7" />
+        </svg>
+      )
+    case 'dislike':
+      return (
+        <svg {...p}>
+          <path d="M7 14V4H4v10z" />
+          <path d="M7 14l4 7c1.2 0 2-1 2-2.2L12 15h5.5c1.2 0 2-1 1.8-2.2l-1.2-7C17.95 4.9 17.2 4 16 4H7" />
         </svg>
       )
   }

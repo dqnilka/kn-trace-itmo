@@ -5,6 +5,7 @@ import { Skeleton, TheorySkeleton } from '../components/ui/Skeleton'
 import BrandLoader from '../components/ui/BrandLoader'
 import MasteryRings from '../components/MasteryRings'
 import ProgressRing from '../components/ui/ProgressRing'
+import RateWidget from '../components/ui/RateWidget'
 import Icon, { type IconName } from '../components/ui/Icon'
 import Logo from '../components/Logo'
 
@@ -100,6 +101,11 @@ export default function KitScreen() {
             </span>
           ))}
         </div>
+
+        <h2 className="kit-h">Оценка контента (лайк / дизлайк + причина)</h2>
+        <Card framed>
+          <RateWidget kind="theory" refId="kit-demo" label="Полезна ли эта теория?" />
+        </Card>
 
         <h2 className="kit-h">Чипы</h2>
         <div className="kit-row">
