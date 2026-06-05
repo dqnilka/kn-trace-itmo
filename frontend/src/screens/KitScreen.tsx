@@ -4,6 +4,7 @@ import Field from '../components/ui/Field'
 import { Skeleton, TheorySkeleton } from '../components/ui/Skeleton'
 import BrandLoader from '../components/ui/BrandLoader'
 import MasteryRings from '../components/MasteryRings'
+import ProgressRing from '../components/ui/ProgressRing'
 import Icon, { type IconName } from '../components/ui/Icon'
 import Logo from '../components/Logo'
 
@@ -68,6 +69,14 @@ export default function KitScreen() {
           <Field label="Пароль" type="password" placeholder="минимум 6 символов" />
           <Field label="С ошибкой" placeholder="неверно" error="Что-то не так" />
         </Card>
+
+        <h2 className="kit-h">Кольца знаний (Главная / главы): нет данных · низкий · средний · высокий</h2>
+        <div className="kit-row" style={{ gap: 22 }}>
+          <ProgressRing value={0} tone="neutral" size={78} label="?" />
+          <ProgressRing value={0.3} tone="accent" size={78} />
+          <ProgressRing value={0.58} tone="warn" size={78} />
+          <ProgressRing value={0.86} tone="ok" size={78} />
+        </div>
 
         <h2 className="kit-h">Прогресс после занятия — рост / падение / без изменений</h2>
         <Card framed>

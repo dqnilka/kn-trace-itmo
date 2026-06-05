@@ -5,6 +5,7 @@ import QuestionCard from '../components/QuestionCard'
 import MasteryRings, { type RingDatum } from '../components/MasteryRings'
 import Icon from '../components/ui/Icon'
 import { TheorySkeleton } from '../components/ui/Skeleton'
+import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { ACTIVE_EXAM_SLUG, buildIndex, loadBank } from '../state/bank'
 import {
   bumpMastery,
@@ -86,9 +87,22 @@ export default function LearningPathScreen({
   onRestart: () => void
 }) {
   const [phase, setPhase] = useState<Phase>({ kind: 'loading' })
+  const [confirmExit, setConfirmExit] = useState(false)
   // Snapshot of mastery BEFORE the session — used to animate the rings
   // (before% → after%) on the completion screen.
   const prevMasteryRef = useRef<MasteryStore>({})
+
+  const exitDialog = (
+    <ConfirmDialog
+      open={confirmExit}
+      title="Прервать занятие?"
+      text="Прогресс этого занятия не сохранится. Уже отвеченные вопросы засчитаны."
+      confirmLabel="Прервать"
+      cancelLabel="Остаться"
+      onConfirm={onBack}
+      onCancel={() => setConfirmExit(false)}
+    />
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -312,7 +326,7 @@ export default function LearningPathScreen({
     return (
       <div className="screen">
         <div className="screen-head">
-          <button className="link-button" onClick={onBack}>
+          <button className="link-button" onClick={() => setConfirmExit(true)}>
             ← прервать
           </button>
           <div className="meta">
@@ -379,6 +393,7 @@ export default function LearningPathScreen({
             </footer>
           </article>
         </div>
+        {exitDialog}
       </div>
     )
   }
@@ -413,6 +428,7 @@ export default function LearningPathScreen({
           onAnswer={onAnswer}
         />
       </div>
+      {exitDialog}
     </div>
   )
 }
