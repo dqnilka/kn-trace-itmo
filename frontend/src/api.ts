@@ -90,6 +90,17 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ exam_slug: slug, themes }),
     }),
+  feedback: (body: {
+    kind: 'theory' | 'lesson'
+    ref?: string
+    rating: 'like' | 'dislike'
+    comment?: string
+  }) =>
+    fetchJson<{ ok: boolean }>('/api/v1/me/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
   // Multi-exam trainer plane
   exams: () => fetchJson<ExamListResponse>('/api/v1/exams'),
   examBank: (slug: string) => fetchJson<ExamBank>(`/api/v1/exams/${slug}/bank`),

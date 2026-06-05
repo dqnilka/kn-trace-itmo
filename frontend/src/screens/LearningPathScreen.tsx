@@ -6,6 +6,7 @@ import MasteryRings, { type RingDatum } from '../components/MasteryRings'
 import Icon from '../components/ui/Icon'
 import { TheorySkeleton } from '../components/ui/Skeleton'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
+import RateWidget from '../components/ui/RateWidget'
 import { ACTIVE_EXAM_SLUG, buildIndex, loadBank } from '../state/bank'
 import {
   bumpMastery,
@@ -305,6 +306,8 @@ export default function LearningPathScreen({
           </p>
 
           <MasteryRings themes={themeRings} overall={overall} />
+
+          <RateWidget kind="lesson" refId="adaptive" label="Как тебе занятие?" />
 
           <div className="actions-row" style={{ marginTop: 24 }}>
             <button className="pill pill-primary" onClick={onRestart}>

@@ -160,6 +160,28 @@ async def put_my_mastery(body: MasterySync, user: CurrentUser = Depends(get_curr
     return {"ok": True, "themes": len(body.themes)}
 
 
+class FeedbackIn(BaseModel):
+    kind: str  # 'theory' | 'lesson'
+    ref: str = ''  # theme_code / lesson id
+    rating: str  # 'like' | 'dislike'
+    comment: str | None = None
+
+
+@router.post("/me/feedback")
+async def submit_feedback(fb: FeedbackIn, user: CurrentUser = Depends(get_current_user)):
+    if fb.kind not in ('theory', 'lesson') or fb.rating not in ('like', 'dislike'):
+        raise HTTPException(status_code=422, detail="Некорректный kind/rating.")
+    comment = (fb.comment or '').strip()[:2000] or None
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            """INSERT INTO feedback (user_id, kind, ref, rating, comment)
+               VALUES ($1,$2,$3,$4,$5)""",
+            user.id, fb.kind, fb.ref[:128], fb.rating, comment,
+        )
+    return {"ok": True}
+
+
 @router.post("/me/event")
 async def record_my_event(ev: MasteryEvent, user: CurrentUser = Depends(get_current_user)):
     pool = get_pool()

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import SafeMarkdown from '../components/SafeMarkdown'
 import { TheorySkeleton } from '../components/ui/Skeleton'
+import RateWidget from '../components/ui/RateWidget'
 import { api } from '../api'
 import { ACTIVE_EXAM_SLUG } from '../state/bank'
 import { loadMastery, themeScore } from '../state/mastery'
@@ -210,6 +211,8 @@ export default function TheoryScreen({
             Решать задачи →
           </button>
         </div>
+
+        <RateWidget kind="theory" refId={themeCode} label="Полезна ли эта теория?" />
       </div>
     </div>
   )
