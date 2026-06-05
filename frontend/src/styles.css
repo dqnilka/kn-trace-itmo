@@ -3345,7 +3345,11 @@ details[open] summary {
 .path-step,
 .subject-pill,
 .banner-warn,
-.explain-block {
+.explain-block,
+.theme-card,
+.theme-list,
+.qcard,
+.options-list .option {
   border-radius: 0 !important;
 }
 
