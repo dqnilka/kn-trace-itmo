@@ -1,6 +1,7 @@
 import type {
   AdminExamsResponse,
   AdminIngestOptions,
+  AdminFeedbackSummary,
   AdminRun,
   AdminRunsResponse,
   AuthResponse,
@@ -212,4 +213,5 @@ export const adminApi = {
     fetchJson<{ ok: boolean; exams: string[] }>('/api/v1/admin/reload', {
       method: 'POST',
     }),
+  feedback: () => fetchJson<AdminFeedbackSummary>('/api/v1/admin/feedback'),
 }
