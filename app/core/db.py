@@ -12,7 +12,11 @@ so a missing DB never takes the whole service down.
 
 from __future__ import annotations
 
+import asyncio
 import ssl
+from collections.abc import Awaitable, AsyncIterator
+from contextlib import asynccontextmanager
+from typing import TypeVar
 
 from app.core.config import get_settings
 from app.core.logging import get_logger
@@ -20,6 +24,9 @@ from app.core.logging import get_logger
 logger = get_logger(__name__)
 
 _pool = None  # asyncpg.Pool | None
+_AUTH_DB_TIMEOUT_SEC = 5.0
+_AUTH_DB_TIMEOUT_DETAIL = "База пользователей отвечает слишком долго. Попробуйте еще раз."
+T = TypeVar("T")
 
 
 SCHEMA_SQL = """
@@ -105,3 +112,29 @@ def get_pool():
             detail="Auth/progress database is not configured (DATABASE_URL).",
         )
     return _pool
+
+
+async def with_auth_db_timeout(awaitable: Awaitable[T]) -> T:
+    """Bound auth DB operations so login/register fail fast instead of hanging."""
+    from fastapi import HTTPException
+
+    try:
+        return await asyncio.wait_for(awaitable, timeout=_AUTH_DB_TIMEOUT_SEC)
+    except TimeoutError as e:
+        raise HTTPException(status_code=503, detail=_AUTH_DB_TIMEOUT_DETAIL) from e
+
+
+@asynccontextmanager
+async def acquire_auth_conn() -> AsyncIterator:
+    """Acquire a DB connection for auth with a short timeout."""
+    from fastapi import HTTPException
+
+    pool = get_pool()
+    try:
+        conn = await asyncio.wait_for(pool.acquire(), timeout=_AUTH_DB_TIMEOUT_SEC)
+    except TimeoutError as e:
+        raise HTTPException(status_code=503, detail=_AUTH_DB_TIMEOUT_DETAIL) from e
+    try:
+        yield conn
+    finally:
+        await pool.release(conn)

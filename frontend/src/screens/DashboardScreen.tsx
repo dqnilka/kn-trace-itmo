@@ -3,6 +3,7 @@ import { api } from '../api'
 import InfoTip from '../components/InfoTip'
 import Icon from '../components/ui/Icon'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
+import ProgressRing from '../components/ui/ProgressRing'
 import { ACTIVE_EXAM_SLUG, buildIndex, loadBank } from '../state/bank'
 import {
   CHAPTER_MIN_CONFIDENT,
@@ -35,13 +36,6 @@ const VARIANTS = [
 ]
 
 const PASS_THRESHOLD = 80 // % правильных ответов = условный «сдашь экзамен»
-
-function pctColor(pct: number | null): string {
-  if (pct == null) return 'var(--fg-3)' // нет данных — нейтральный
-  if (pct >= 0.75) return 'var(--ok)'
-  if (pct >= 0.5) return 'var(--warn)'
-  return 'var(--accent)' // низкий — clay (зона фокуса), без тревожного красного
-}
 
 // Knowledge level on a 0-100 "will-I-pass" scale.
 // Below ПРОХОДНОЙ (80% correct) it scales linearly to a comfortable margin.
@@ -250,12 +244,11 @@ export default function DashboardScreen({
             'Шкала 0-100, где ≥80 — условно сдашь экзамен. Точность растёт с числом ответов.'
           }
           value={
-            overall.confidence === 'ok' && bktMastery?.overall != null
-              ? knowledgeLevel(bktMastery.overall)
+            overall.confidence === 'ok'
+              ? knowledgeLevel(bktMastery?.overall ?? overall.pct ?? 0)
               : null
           }
           confidence={overall.confidence}
-          color={pctColor(bktMastery?.overall ?? overall.pct)}
           sub={
             overall.asked === 0
               ? 'нет данных — начни занятие'
@@ -274,7 +267,6 @@ export default function DashboardScreen({
           value={touchedThemes}
           confidence={totalThemes > 0 ? 'ok' : 'empty'}
           maxValue={totalThemes}
-          color="#0ea5e9"
           sub={`${touchedThemes} из ${totalThemes}`}
         />
         <StatCard
@@ -293,14 +285,6 @@ export default function DashboardScreen({
               : null
           }
           confidence={variants.length > 0 ? 'ok' : 'empty'}
-          color={
-            variants.length > 0
-              ? pctColor(
-                  variants[variants.length - 1].correct /
-                    variants[variants.length - 1].total,
-                )
-              : 'var(--fg-3)'
-          }
           sub={
             variants.length === 0
               ? 'ещё не проходил'
@@ -398,18 +382,16 @@ function ChapterCard({
   onPractice: (code: string) => void
   onTheory: (code: string) => void
 }) {
-  // Number of "touches" comes from local mastery (correct/asked, immediate).
-  // The colour ring uses BKT posterior from the server (smoothed, ML-based).
+  // Touch count comes from local answers; the displayed level uses server BKT.
   const ch = chapterScore(mastery, themes)
   const bktPct = bkt?.by_chapter?.[String(chapter.id)] ?? null
-  const ringPct = ch.confidence === 'ok' ? bktPct : null
-  const ringColor = pctColor(ringPct)
+  const levelPct = ch.confidence === 'ok' ? (bktPct ?? ch.pct ?? null) : null
   const headStateClass =
     ch.confidence === 'empty' || ch.confidence === 'low'
       ? 'untouched'
-      : ringPct != null && ringPct >= 0.75
+      : levelPct != null && levelPct >= 0.75
         ? 'strong'
-        : ringPct != null && ringPct >= 0.5
+        : levelPct != null && levelPct >= 0.5
           ? 'medium'
           : 'weak'
 
@@ -424,11 +406,7 @@ function ChapterCard({
     <div className={`chapter-card ${open ? 'open' : ''} ${headStateClass}`}>
       <button className="chapter-head" onClick={onToggle}>
         <div className="chapter-left">
-          <Ring
-            value={ringPct != null ? Math.round(ringPct * 100) : null}
-            color={ringColor}
-            size={44}
-          />
+          <DashboardProgressRing value={levelPct != null ? Math.round(levelPct * 100) : null} size={44} />
           <div>
             <div className="chapter-title">
               {chapter.num}. {chapter.name}
@@ -444,7 +422,8 @@ function ChapterCard({
             const taskCount = (tasksByTheme.get(t.code) as unknown[] | undefined)?.length ?? 0
             const s = themeScore(mastery, t.code)
             const bktThemePct = bkt?.by_theme?.[t.code] ?? null
-            const themePctVal = s.confidence === 'ok' ? bktThemePct : null
+            const themePctVal =
+              s.confidence === 'ok' ? (bktThemePct ?? s.pct ?? null) : null
             const stateClass =
               s.confidence === 'empty' || s.confidence === 'low'
                 ? 'untouched'
@@ -575,62 +554,52 @@ function MasteryBadge({
         text={help}
         label="?"
         size="md"
-        className="mb mb-tentative"
+        className="progress-ring-tip progress-ring-tip-sm"
       />
     )
   }
   // Confident mastery: prefer server BKT posterior, fall back to count-based pct.
   const pct = (bktPct != null ? bktPct : (score.pct ?? 0)) * 100
-  const cls = pct >= 75 ? 'mb-strong' : pct >= 50 ? 'mb-medium' : 'mb-weak'
+  const rounded = Math.round(pct)
   return (
-    <span
-      className={`mb ${cls}`}
+    <DashboardProgressRing
+      value={rounded}
+      size={44}
+      label={`${rounded}%`}
       title={`${Math.round(pct)}% уровень знаний по BKT-модели (${score.asked} ${plural(score.asked, 'ответ', 'ответа', 'ответов')})`}
-    >
-      {Math.round(pct)}%
-    </span>
+    />
   )
 }
 
-function Ring({
+function progressTone(value: number | null): 'accent' | 'ok' | 'warn' | 'neutral' {
+  if (value == null) return 'neutral'
+  if (value >= 75) return 'ok'
+  if (value >= 50) return 'warn'
+  return 'accent'
+}
+
+function DashboardProgressRing({
   value,
-  color,
   size = 56,
-  tooltipHint,
+  label,
+  title,
 }: {
   value: number | null
-  color: string
   size?: number
-  tooltipHint?: string
+  label?: string
+  title?: string
 }) {
   const v = value == null ? 0 : Math.max(0, Math.min(100, value))
-  const angle = (v / 100) * 360
-  const inner = size - 12
   return (
-    <div
-      className="ring-mini"
-      style={{
-        width: size,
-        height: size,
-        background:
-          value == null
-            ? 'var(--bg-3)'
-            : `conic-gradient(${color} ${angle}deg, var(--bg-3) 0deg)`,
-      }}
-      title={tooltipHint}
-    >
-      <div className="ring-mini-inner" style={{ width: inner, height: inner }}>
-        <span
-          style={{
-            color: value == null ? 'var(--fg-3)' : color,
-            fontSize: size > 50 ? 14 : 11,
-            fontWeight: 700,
-          }}
-        >
-          {value == null ? '?' : value}
-        </span>
-      </div>
-    </div>
+    <ProgressRing
+      value={value == null ? null : v / 100}
+      tone={progressTone(value)}
+      size={size}
+      stroke={size <= 44 ? 5 : 7}
+      label={label ?? (value == null ? '?' : String(v))}
+      title={title}
+      className={size <= 44 ? 'dashboard-ring dashboard-ring-sm' : 'dashboard-ring'}
+    />
   )
 }
 
@@ -639,7 +608,6 @@ function StatCard({
   tooltip,
   value,
   confidence,
-  color,
   sub,
   link,
   targetMark,
@@ -649,13 +617,19 @@ function StatCard({
   tooltip: string
   value: number | null
   confidence: 'empty' | 'low' | 'ok'
-  color: string
   sub: string
   link?: React.ReactNode
   targetMark?: number
   maxValue?: number
 }) {
   const showQuestion = confidence !== 'ok' || value == null
+  const ringValue =
+    showQuestion
+      ? null
+      : maxValue != null && maxValue > 0
+        ? Math.round((value / maxValue) * 100)
+        : value
+  const ringLabel = showQuestion ? '?' : maxValue != null ? String(value) : String(value)
   return (
     <div className="stat-card">
       <div className="stat-body">
@@ -670,11 +644,11 @@ function StatCard({
         {link}
       </div>
       <div className="stat-ring">
-        <Ring
-          value={showQuestion ? null : value}
-          color={showQuestion ? 'var(--border-strong)' : color}
+        <DashboardProgressRing
+          value={ringValue}
           size={64}
-          tooltipHint={maxValue != null ? `${value}/${maxValue}` : undefined}
+          label={ringLabel}
+          title={maxValue != null && value != null ? `${value}/${maxValue}` : undefined}
         />
       </div>
     </div>

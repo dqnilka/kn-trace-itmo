@@ -8,6 +8,7 @@ import ProgressRing from '../components/ui/ProgressRing'
 import RateWidget from '../components/ui/RateWidget'
 import Icon, { type IconName } from '../components/ui/Icon'
 import BrandWordmark from '../components/BrandWordmark'
+import InfoTip from '../components/InfoTip'
 
 /** Витрина дизайн-системы FinUplift — открывается по ?kit=1. */
 export default function KitScreen() {
@@ -66,7 +67,7 @@ export default function KitScreen() {
           <Button>Primary</Button>
           <Button variant="secondary">Secondary</Button>
           <Button variant="ghost">Ghost</Button>
-          <Button loading>Loading</Button>
+          <Button loading loadingLabel="Сохраняем...">Loading</Button>
           <Button disabled>Disabled</Button>
           <Button size="big">Big primary</Button>
         </div>
@@ -78,12 +79,60 @@ export default function KitScreen() {
           <Field label="С ошибкой" placeholder="неверно" error="Что-то не так" />
         </Card>
 
-        <h2 className="kit-h">Кольца знаний (Главная / главы): нет данных · низкий · средний · высокий</h2>
+        <h2 className="kit-h">Кольца знаний: нет данных · низкий · средний · высокий</h2>
         <div className="kit-row" style={{ gap: 22 }}>
-          <ProgressRing value={0} tone="neutral" size={78} label="?" />
+          <ProgressRing value={null} tone="neutral" size={78} label="?" />
           <ProgressRing value={0.3} tone="accent" size={78} />
           <ProgressRing value={0.58} tone="warn" size={78} />
           <ProgressRing value={0.86} tone="ok" size={78} />
+        </div>
+
+        <h2 className="kit-h">Dashboard-индикаторы</h2>
+        <div className="stat-row">
+          <div className="stat-card">
+            <div className="stat-body">
+              <div className="stat-label-row">
+                <div className="stat-label">Уровень знаний</div>
+                <InfoTip text="Подсказка к методике расчёта." />
+              </div>
+              <div className="stat-sub">на основе 25 ответов</div>
+              <div className="stat-target">проходной — 80</div>
+            </div>
+            <div className="stat-ring">
+              <ProgressRing
+                value={0.82}
+                tone="ok"
+                size={64}
+                label="82"
+                className="dashboard-ring"
+              />
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-body">
+              <div className="stat-label-row">
+                <div className="stat-label">Тема</div>
+                <InfoTip text="Мало решений для точной оценки." />
+              </div>
+              <div className="stat-sub">мини-кольца в списке тем</div>
+            </div>
+            <div className="kit-row" style={{ gap: 10 }}>
+              <InfoTip
+                text="Недостаточно знаний для определения уровня."
+                label="?"
+                size="md"
+                className="progress-ring-tip progress-ring-tip-sm"
+              />
+              <ProgressRing
+                value={0.61}
+                tone="warn"
+                size={44}
+                stroke={5}
+                label="61%"
+                className="dashboard-ring dashboard-ring-sm"
+              />
+            </div>
+          </div>
         </div>
 
         <h2 className="kit-h">Прогресс после занятия — рост / падение / без изменений</h2>

@@ -34,6 +34,7 @@ export default function AuthScreen({
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (busy) return
     setErr(null)
     const mail = email.trim().toLowerCase()
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) {
@@ -53,7 +54,9 @@ export default function AuthScreen({
       setToken(res.token)
       onAuthed(res.user)
     } catch (e) {
-      if (!isAbortError(e)) {
+      if (isAbortError(e)) {
+        setErr('Сервис авторизации отвечает слишком долго. Попробуйте еще раз.')
+      } else {
         setErr(formatAuthError(e))
       }
     } finally {
@@ -88,6 +91,7 @@ export default function AuthScreen({
               className={`auth-tab ${mode === 'login' ? 'active' : ''}`}
               onClick={() => switchMode('login')}
               type="button"
+              disabled={busy}
             >
               Вход
             </button>
@@ -95,6 +99,7 @@ export default function AuthScreen({
               className={`auth-tab ${mode === 'register' ? 'active' : ''}`}
               onClick={() => switchMode('register')}
               type="button"
+              disabled={busy}
             >
               Регистрация
             </button>
@@ -109,6 +114,7 @@ export default function AuthScreen({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 autoComplete="name"
+                disabled={busy}
               />
             )}
             <Field
@@ -118,6 +124,7 @@ export default function AuthScreen({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
+              disabled={busy}
               required
             />
             <Field
@@ -128,11 +135,26 @@ export default function AuthScreen({
               onChange={(e) => setPassword(e.target.value)}
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
               error={err}
+              disabled={busy}
               required
             />
-            <Button type="submit" size="big" full loading={busy} className="auth-submit">
+            <Button
+              type="submit"
+              size="big"
+              full
+              loading={busy}
+              loadingLabel={mode === 'login' ? 'Входим...' : 'Создаем аккаунт...'}
+              className="auth-submit"
+            >
               {mode === 'login' ? 'Войти' : 'Создать аккаунт'}
             </Button>
+            {busy && (
+              <div className="auth-status" role="status">
+                {mode === 'login'
+                  ? 'Проверяем аккаунт...'
+                  : 'Создаем аккаунт...'}
+              </div>
+            )}
           </form>
         </div>
       </div>
