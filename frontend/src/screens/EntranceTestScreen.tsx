@@ -128,23 +128,22 @@ export default function EntranceTestScreen({
         <div style={{ color: 'var(--warn)', marginBottom: 8 }}>
           <Icon name="alert" size={28} />
         </div>
-        <h2>Пропустить входной тест?</h2>
+        <h2>Перейти к занятиям без входного теста?</h2>
         <p style={{ color: 'var(--fg-2)', lineHeight: 1.6, marginTop: 8 }}>
-          Без входного тренажёр не знает твою стартовую базу — рекомендации
-          будут начинаться «с нуля», прогноз балла станет точным только после
-          25-30 ответов в обычных занятиях.
+          Так тоже можно: тренажёр начнёт с базовых тем и будет уточнять уровень
+          по мере решений. Входной тест просто быстрее строит стартовую карту знаний.
         </p>
         <ul style={{ color: 'var(--fg-2)', lineHeight: 1.8, fontSize: 13, marginTop: 8 }}>
-          <li>Сейчас 25 вопросов = ~5 минут</li>
-          <li>Покрывает все 13 разделов курса</li>
-          <li>Сразу даст карту слабых мест</li>
+          <li>25 вопросов по всем 13 разделам</li>
+          <li>Обычно занимает 10-15 минут</li>
+          <li>После пропуска уровень появится по ходу занятий</li>
         </ul>
         <div className="actions-row" style={{ marginTop: 18 }}>
           <button className="pill pill-primary" onClick={() => setShowSkipModal(false)}>
-            Остаюсь, пройду тест
+            Пройти входной тест
           </button>
           <button className="pill" onClick={onSkip}>
-            Всё равно пропустить
+            Перейти к занятиям
           </button>
         </div>
       </div>

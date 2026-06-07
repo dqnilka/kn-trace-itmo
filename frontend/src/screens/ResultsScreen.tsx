@@ -1,11 +1,18 @@
 import Button from '../components/ui/Button'
+import ProgressRing from '../components/ui/ProgressRing'
 import type { BankEntranceResult } from '../types'
 
-/**
- * Итог входного теста — редакторская карточка: крупный счёт с правилом и
- * прогресс-баром, нумерованный список слабых тем, одна CTA. Острые углы,
- * хайрлайн-разделители — единый язык FinUplift.
- */
+function knowledgeLevel(result: BankEntranceResult): number {
+  if (result.total === 0) return 0
+  return Math.max(0, Math.min(100, Math.round((result.correct / result.total) * 100)))
+}
+
+function encouragement(level: number): string {
+  if (level >= 75) return 'Сильный старт. Дальше закроем оставшиеся пробелы.'
+  if (level >= 45) return 'Хорошая база. Теперь соберём её в устойчивый результат.'
+  return 'Отличная отправная точка. Начнём с фундамента и быстро соберём опору.'
+}
+
 export default function ResultsScreen({
   result,
   onContinue,
@@ -13,66 +20,29 @@ export default function ResultsScreen({
   result: BankEntranceResult
   onContinue: () => void
 }) {
-  const pct =
-    result.total === 0 ? 0 : Math.round((result.correct / result.total) * 100)
-
-  const weak = Object.values(result.per_chapter)
-    .filter((c) => c.wrong > 0)
-    .sort((a, b) => b.wrong / b.asked - a.wrong / a.asked)
-    .slice(0, 3)
-
-  const tone =
-    pct >= 70
-      ? 'Сильный старт. Закроем оставшиеся пробелы.'
-      : pct >= 40
-      ? 'Хорошая база — дальше прицельно по слабым темам.'
-      : 'Отличная отправная точка. Начнём с фундамента.'
+  const level = knowledgeLevel(result)
 
   return (
     <div className="screen results-screen">
       <div className="screen-body centered">
         <div className="rt-card">
           <div className="rt-eyebrow">Входной тест пройден</div>
-          <h1 className="rt-headline">Ваш стартовый уровень</h1>
-          <div className="rt-tone">{tone}</div>
-
-          <div className="rt-score">
-            <div className="rt-score-pct">{pct}%</div>
-            <div className="rt-score-rule" />
-            <div className="rt-score-side">
-              <div className="rt-score-frac">
-                {result.correct} <span>/ {result.total} верно</span>
-              </div>
-              <div className="rt-bar">
-                <div className="rt-bar-fill" style={{ width: `${pct}%` }} />
-              </div>
-            </div>
+          <div className="rt-ring-wrap" aria-label={`Стартовый уровень знаний ${level}`}>
+            <ProgressRing
+              value={level / 100}
+              tone={level >= 75 ? 'ok' : level >= 45 ? 'warn' : 'accent'}
+              size={156}
+              stroke={12}
+              label={String(level)}
+              className="rt-level-ring"
+              title={`Стартовый уровень знаний ${level}`}
+            />
           </div>
-
-          {weak.length > 0 && (
-            <>
-              <div className="rt-divider" />
-              <div className="rt-weak-title">С этих тем начнём</div>
-              {weak.map((w, i) => {
-                const ok = w.asked - w.wrong
-                return (
-                  <div key={w.chapter_id} className="rt-weak-row">
-                    <span className="rt-weak-rank">
-                      {String(i + 1).padStart(2, '0')}
-                    </span>
-                    <span className="rt-weak-name">{w.chapter_name}</span>
-                    <span className="rt-weak-score">
-                      {ok} из {w.asked}
-                    </span>
-                  </div>
-                )
-              })}
-            </>
-          )}
-
+          <h1 className="rt-headline">Стартовый уровень знаний</h1>
+          <p className="rt-tone">{encouragement(level)}</p>
           <div className="rt-cta">
             <Button size="big" full onClick={onContinue}>
-              Начать подготовку →
+              Перейти к занятиям →
             </Button>
           </div>
         </div>

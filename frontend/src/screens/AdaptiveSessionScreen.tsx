@@ -182,7 +182,7 @@ export default function AdaptiveSessionScreen({
             Прошли {rows.length} тем · {total} вопросов
           </p>
           <div className="score-card big">
-            <div className="ring-value-xl">{pct}%</div>
+            <div className="ring-value-xl">{pct}</div>
             <div className="score-card-meta">
               {correct} из {total} верно
             </div>
@@ -197,7 +197,7 @@ export default function AdaptiveSessionScreen({
                   <div className="adaptive-theme-name">{r.theme.name}</div>
                   <div className="adaptive-theme-pct">
                     {r.correct}/{r.asked} ·{' '}
-                    <strong>{Math.round(p * 100)}%</strong>
+                    <strong>{Math.round(p * 100)}</strong>
                   </div>
                 </div>
               )

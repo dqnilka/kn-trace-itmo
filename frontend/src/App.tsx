@@ -171,7 +171,12 @@ export default function App() {
 
   let body: React.ReactNode = null
   if (screen === 'onboarding') {
-    body = <OnboardingScreen onDone={() => setScreen('entrance')} />
+    body = (
+      <OnboardingScreen
+        onStart={() => setScreen('entrance')}
+        onSkip={() => setScreen('dashboard')}
+      />
+    )
   } else if (screen === 'entrance') {
     body = (
       <EntranceTestScreen

@@ -178,7 +178,7 @@ export default function PracticeScreen({
             {phase.chapter?.name} · {phase.theme.name}
           </p>
           <div className="score-card big">
-            <div className="ring-value-xl">{pct}%</div>
+            <div className="ring-value-xl">{pct}</div>
             <div className="score-card-meta">
               {phase.correct} из {phase.total} верно
             </div>

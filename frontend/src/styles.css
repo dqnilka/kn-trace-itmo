@@ -1636,6 +1636,15 @@ details[open] summary {
 .pring {
   display: block;
   flex-shrink: 0;
+  box-sizing: border-box;
+  aspect-ratio: 1 / 1;
+}
+
+.chapter-left > .pring,
+.theme-left > .pring,
+.stat-ring > .pring,
+.kit-row > .pring {
+  flex: 0 0 auto;
 }
 
 .dashboard-ring text {
@@ -2201,6 +2210,9 @@ details[open] summary {
   font-family: inherit;
   font-weight: 700;
   user-select: none;
+  line-height: 1;
+  box-sizing: border-box;
+  flex: 0 0 auto;
 }
 
 .info-tip-icon.info-tip-sm {
@@ -2226,6 +2238,12 @@ details[open] summary {
 .info-tip-icon.progress-ring-tip {
   width: 44px;
   height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  max-width: 44px;
+  max-height: 44px;
+  aspect-ratio: 1 / 1;
+  align-self: center;
   margin: 0;
   border-radius: 50%;
   border: 5px solid var(--bg-3);
@@ -2238,6 +2256,8 @@ details[open] summary {
 .info-tip-icon.info-tip-md.progress-ring-tip {
   width: 44px;
   height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   font-size: 12px;
 }
 
@@ -3264,28 +3284,40 @@ details[open] summary {
 /* InfoTip popover rendered via portal (position: fixed) — never clipped. */
 .info-tip-popover-fixed {
   position: fixed;
-  transform: translate(-50%, calc(-100% - 10px));
   z-index: 1000;
-  max-width: 260px;
-  background: var(--fg);
-  color: #fff;
+  width: min(260px, calc(100vw - 28px));
+  background: var(--bg-2);
+  color: var(--fg-2);
+  border: 1px solid var(--border-strong);
   font-size: 12.5px;
   line-height: 1.45;
   font-weight: 500;
-  padding: 9px 12px;
-  border-radius: 10px;
-  box-shadow: var(--shadow-lg);
+  padding: 10px 12px;
+  border-radius: 6px;
+  box-shadow: 0 12px 28px rgba(31, 30, 28, 0.12);
   pointer-events: none;
   white-space: normal;
 }
+.info-tip-popover-fixed.is-top {
+  transform: translate(-50%, calc(-100% - 10px));
+}
+.info-tip-popover-fixed.is-bottom {
+  transform: translate(-50%, 10px);
+}
 .info-tip-popover-fixed::after {
-  content: '';
-  position: absolute;
+  content: none;
+}
+.info-tip-popover-fixed.is-top::after {
   top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  border: 6px solid transparent;
-  border-top-color: var(--fg);
+  border-left: 0;
+  border-top: 0;
+  margin-top: -5px;
+}
+.info-tip-popover-fixed.is-bottom::after {
+  bottom: 100%;
+  border-right: 0;
+  border-bottom: 0;
+  margin-bottom: -5px;
 }
 
 /* Brand mark now hosts the SVG logo — drop the old gradient box in the main header. */
@@ -3341,6 +3373,14 @@ details[open] summary {
 .modal,
 .welcome-point-icon {
   border-radius: 0 !important;
+}
+
+.info-tip-popover-fixed {
+  border-radius: 6px !important;
+}
+
+.info-tip-popover-fixed::after {
+  border-radius: 2px;
 }
 
 /* --- Иконки (свои SVG вместо эмодзи) --- */
@@ -3790,6 +3830,80 @@ details[open] summary {
 }
 .rt-cta {
   padding: 18px 22px 22px;
+}
+
+.results-screen .rt-card {
+  max-width: 420px;
+  padding: 28px 26px 26px;
+  text-align: center;
+}
+
+.results-screen .rt-eyebrow,
+.results-screen .rt-headline,
+.results-screen .rt-tone,
+.results-screen .rt-cta {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.results-screen .rt-eyebrow {
+  padding-top: 0;
+  animation: rt-fade-up 0.25s ease 0.95s both;
+}
+
+.rt-ring-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 18px 0 20px;
+  animation: rt-scale-in 0.28s ease both;
+}
+
+.rt-level-ring text {
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 700;
+}
+
+.results-screen .rt-headline {
+  font-size: 25px;
+  margin-top: 0;
+  animation: rt-fade-up 0.25s ease 1s both;
+}
+
+.results-screen .rt-tone {
+  max-width: 320px;
+  margin: 8px auto 0;
+  font-size: 15px;
+  line-height: 1.5;
+  animation: rt-fade-up 0.25s ease 1.08s both;
+}
+
+.results-screen .rt-cta {
+  padding-top: 22px;
+  padding-bottom: 0;
+  animation: rt-fade-up 0.25s ease 1.16s both;
+}
+
+@keyframes rt-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes rt-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* --- Card --- */
