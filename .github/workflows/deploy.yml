@@ -1,153 +1,288 @@
-# CI/CD: при push в master или ручном trigger — build + push image + sync фронт.
+# Safe production deploy for the current Yandex Cloud setup.
 #
-# Repo secrets, которые нужны (Settings → Secrets and variables → Actions):
+# Source of truth: master on GitHub. Run this workflow manually after a PR is
+# merged. The workflow runs on Ubuntu so frontend uploads use POSIX paths.
 #
-#   YC_SA_KEY_FILE         — содержимое JSON-ключа deployer SA (целиком, multiline)
-#   YC_CLOUD_ID            — например "b1g..."
-#   YC_FOLDER_ID           — например "b1g..."
-#   YC_CR_ID               — Container Registry ID (terraform output)
-#   YC_CONTAINER_ID        — Serverless Container ID (terraform output)
-#   YC_BUCKET              — имя bucket с фронтом
-#   YC_BUCKET_AK           — Access Key (terraform output bucket_access_key)
-#   YC_BUCKET_SK           — Secret Key (terraform output bucket_secret_key)
-#
-# Первичный deploy всё равно через `terraform apply` локально — этот workflow
-# только пересобирает образ и фронт после terraform-инфры.
+# Required repository secrets:
+#   YC_SA_KEY_FILE   Service-account JSON key for the deployer account
+#   YC_CLOUD_ID      Yandex Cloud id
+#   YC_FOLDER_ID     Yandex Cloud folder id
+#   YC_CR_ID         Container Registry id
+#   YC_CONTAINER_ID  Serverless Container id
+#   YC_BUCKET        Object Storage bucket with frontend assets
+#   YC_BUCKET_AK     Static access key for the frontend bucket
+#   YC_BUCKET_SK     Static secret key for the frontend bucket
 
 name: Deploy to Yandex Cloud
 
-# Только ручной запуск через Actions → Run workflow.
-# Когда добавишь все 8 secrets (см. terraform/SETUP.md шаг 8) и протестируешь
-# успешный ручной запуск — можно раскомментировать push-trigger ниже для
-# авто-деплоя при push в master.
 on:
   workflow_dispatch:
     inputs:
       backend:
+        description: Build and deploy the FastAPI container
         type: boolean
-        default: true
+        default: false
       frontend:
+        description: Build and upload the Vite frontend
         type: boolean
         default: true
-  # push:
-  #   branches: [master]
-  #   paths-ignore:
-  #     - "**.md"
-  #     - "docs/**"
-  #     - "terraform/**"
+
+env:
+  PUBLIC_URL: https://d5d05aesrv8vtemcc0ga.628pfjdx.apigw.yandexcloud.net
+  IMAGE_NAME: kt-app
+  NODE_VERSION: "20"
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout master
+        uses: actions/checkout@v4
+        with:
+          ref: master
 
-      - name: Verify all required secrets are set
+      - name: Verify required secrets
         env:
+          DO_BACKEND: ${{ inputs.backend == true }}
+          DO_FRONTEND: ${{ inputs.frontend == true }}
           YC_SA_KEY_FILE: ${{ secrets.YC_SA_KEY_FILE }}
-          YC_CLOUD_ID:    ${{ secrets.YC_CLOUD_ID }}
-          YC_FOLDER_ID:   ${{ secrets.YC_FOLDER_ID }}
-          YC_CR_ID:       ${{ secrets.YC_CR_ID }}
+          YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
+          YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
+          YC_CR_ID: ${{ secrets.YC_CR_ID }}
           YC_CONTAINER_ID: ${{ secrets.YC_CONTAINER_ID }}
-          YC_BUCKET:      ${{ secrets.YC_BUCKET }}
-          YC_BUCKET_AK:   ${{ secrets.YC_BUCKET_AK }}
-          YC_BUCKET_SK:   ${{ secrets.YC_BUCKET_SK }}
+          YC_BUCKET: ${{ secrets.YC_BUCKET }}
+          YC_BUCKET_AK: ${{ secrets.YC_BUCKET_AK }}
+          YC_BUCKET_SK: ${{ secrets.YC_BUCKET_SK }}
         run: |
+          set -euo pipefail
+
+          required=(YC_SA_KEY_FILE YC_CLOUD_ID YC_FOLDER_ID)
+          if [ "$DO_BACKEND" = "true" ]; then
+            required+=(YC_CR_ID YC_CONTAINER_ID)
+          fi
+          if [ "$DO_FRONTEND" = "true" ]; then
+            required+=(YC_BUCKET YC_BUCKET_AK YC_BUCKET_SK)
+          fi
+
           missing=()
-          for var in YC_SA_KEY_FILE YC_CLOUD_ID YC_FOLDER_ID YC_CR_ID YC_CONTAINER_ID YC_BUCKET YC_BUCKET_AK YC_BUCKET_SK; do
-            if [ -z "${!var:-}" ]; then missing+=("$var"); fi
+          for var in "${required[@]}"; do
+            if [ -z "${!var:-}" ]; then
+              missing+=("$var")
+            fi
           done
+
           if [ ${#missing[@]} -gt 0 ]; then
             echo "::error ::Missing repository secrets: ${missing[*]}"
-            echo "::error ::Add them at https://github.com/${{ github.repository }}/settings/secrets/actions"
-            echo "::error ::See terraform/SETUP.md step 8 for what to put in each secret."
             exit 1
           fi
-          echo "✓ All 8 secrets present"
+
+          if [ "$DO_BACKEND" != "true" ] && [ "$DO_FRONTEND" != "true" ]; then
+            echo "::error ::Nothing selected to deploy."
+            exit 1
+          fi
+
+          echo "Secrets are present for the selected deploy scope."
 
       - name: Install yc CLI
         run: |
+          set -euo pipefail
           curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash
           echo "$HOME/yandex-cloud/bin" >> "$GITHUB_PATH"
 
-      - name: Configure yc auth (service-account JSON)
+      - name: Configure yc auth
+        env:
+          YC_SA_KEY_FILE: ${{ secrets.YC_SA_KEY_FILE }}
+          YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
+          YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
         run: |
-          echo '${{ secrets.YC_SA_KEY_FILE }}' > /tmp/sa-key.json
+          set -euo pipefail
+          printf '%s' "$YC_SA_KEY_FILE" > /tmp/sa-key.json
           yc config profile create ci || yc config profile activate ci
           yc config set service-account-key /tmp/sa-key.json
-          yc config set cloud-id  '${{ secrets.YC_CLOUD_ID }}'
-          yc config set folder-id '${{ secrets.YC_FOLDER_ID }}'
+          yc config set cloud-id "$YC_CLOUD_ID"
+          yc config set folder-id "$YC_FOLDER_ID"
+
+      - name: Install AWS CLI
+        if: ${{ inputs.frontend == true }}
+        run: |
+          set -euo pipefail
+          if ! command -v aws >/dev/null 2>&1; then
+            python3 -m pip install --user awscli
+            echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          fi
+          aws --version
 
       # ---------- Backend ----------
+      - name: Capture active backend revision config
+        if: ${{ inputs.backend == true }}
+        env:
+          YC_CONTAINER_ID: ${{ secrets.YC_CONTAINER_ID }}
+        run: |
+          set -euo pipefail
+
+          yc serverless container revision list \
+            --container-id "$YC_CONTAINER_ID" \
+            --limit 20 \
+            --format json \
+            | jq 'map(select(.status == "ACTIVE")) | sort_by(.created_at) | last // empty' \
+            > /tmp/active-revision.json
+
+          if [ ! -s /tmp/active-revision.json ] || [ "$(jq -r 'type' /tmp/active-revision.json)" != "object" ]; then
+            echo "::error ::Could not find an ACTIVE container revision to copy config from."
+            exit 1
+          fi
+
+          secret_count=$(jq '.secrets | length' /tmp/active-revision.json)
+          if [ "$secret_count" -lt 1 ]; then
+            echo "::error ::Active revision has no secrets. Refusing to deploy an unsafe backend revision."
+            exit 1
+          fi
+
+          service_account_id=$(jq -r '.service_account_id // empty' /tmp/active-revision.json)
+          network_id=$(jq -r '.connectivity.network_id // empty' /tmp/active-revision.json)
+          if [ -z "$service_account_id" ] || [ -z "$network_id" ]; then
+            echo "::error ::Active revision is missing service_account_id or network_id."
+            exit 1
+          fi
+
+          jq -r '"Copying config from revision " + .id + " (" + .image.image_url + ")"' /tmp/active-revision.json
+          jq -r '"Secret env vars: " + ([.secrets[]?.environment_variable] | join(", "))' /tmp/active-revision.json
+
       - name: Docker login to Yandex Container Registry
-        if: ${{ inputs.backend == true || github.event_name == 'push' }}
+        if: ${{ inputs.backend == true }}
         run: yc container registry configure-docker
 
       - name: Set up Docker Buildx
-        if: ${{ inputs.backend == true || github.event_name == 'push' }}
+        if: ${{ inputs.backend == true }}
         uses: docker/setup-buildx-action@v3
 
-      - name: Build & push backend image
-        if: ${{ inputs.backend == true || github.event_name == 'push' }}
+      - name: Build and push backend image
+        if: ${{ inputs.backend == true }}
         env:
-          IMAGE_URL: cr.yandex/${{ secrets.YC_CR_ID }}/kt-app:${{ github.sha }}
-          IMAGE_URL_LATEST: cr.yandex/${{ secrets.YC_CR_ID }}/kt-app:latest
+          IMAGE_URL: cr.yandex/${{ secrets.YC_CR_ID }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          IMAGE_URL_LATEST: cr.yandex/${{ secrets.YC_CR_ID }}/${{ env.IMAGE_NAME }}:latest
         run: |
+          set -euo pipefail
           docker buildx build \
+            --platform linux/amd64 \
             -f Dockerfile.prod \
-            -t "$IMAGE_URL" -t "$IMAGE_URL_LATEST" \
+            -t "$IMAGE_URL" \
+            -t "$IMAGE_URL_LATEST" \
             --push \
             .
 
-      - name: Deploy new container revision
-        if: ${{ inputs.backend == true || github.event_name == 'push' }}
+      - name: Deploy backend revision with copied config
+        if: ${{ inputs.backend == true }}
         env:
-          IMAGE_URL: cr.yandex/${{ secrets.YC_CR_ID }}/kt-app:${{ github.sha }}
+          YC_CONTAINER_ID: ${{ secrets.YC_CONTAINER_ID }}
+          IMAGE_URL: cr.yandex/${{ secrets.YC_CR_ID }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
         run: |
-          yc serverless container revision deploy \
-            --container-id '${{ secrets.YC_CONTAINER_ID }}' \
-            --image "$IMAGE_URL" \
-            --memory 2GB --cores 1 \
-            --execution-timeout 90s --concurrency 4
+          set -euo pipefail
+
+          memory_bytes=$(jq -r '.resources.memory // "2147483648"' /tmp/active-revision.json)
+          case "$memory_bytes" in
+            2147483648) memory="2GB" ;;
+            1073741824) memory="1GB" ;;
+            536870912) memory="512MB" ;;
+            *) memory="${memory_bytes}" ;;
+          esac
+
+          cores=$(jq -r '.resources.cores // "1"' /tmp/active-revision.json)
+          core_fraction=$(jq -r '.resources.core_fraction // "100"' /tmp/active-revision.json)
+          timeout=$(jq -r '.execution_timeout // "90s"' /tmp/active-revision.json)
+          concurrency=$(jq -r '.concurrency // "4"' /tmp/active-revision.json)
+          service_account_id=$(jq -r '.service_account_id' /tmp/active-revision.json)
+          network_id=$(jq -r '.connectivity.network_id' /tmp/active-revision.json)
+          environment=$(jq -r '(.image.environment // {}) | to_entries | map("\(.key)=\(.value)") | join(",")' /tmp/active-revision.json)
+          active_revision_id=$(jq -r '.id' /tmp/active-revision.json)
+
+          deploy_args=(
+            serverless container revision deploy
+            --container-id "$YC_CONTAINER_ID"
+            --image "$IMAGE_URL"
+            --memory "$memory"
+            --cores "$cores"
+            --core-fraction "$core_fraction"
+            --execution-timeout "$timeout"
+            --concurrency "$concurrency"
+            --service-account-id "$service_account_id"
+            --network-id "$network_id"
+            --description "GitHub Actions ${GITHUB_SHA::7}; config copied from ${active_revision_id}"
+          )
+
+          if [ -n "$environment" ]; then
+            deploy_args+=(--environment "$environment")
+          fi
+
+          while IFS= read -r secret_arg; do
+            deploy_args+=(--secret "$secret_arg")
+          done < <(jq -r '.secrets[]? | "id=\(.id),version-id=\(.version_id),key=\(.key),environment-variable=\(.environment_variable)"' /tmp/active-revision.json)
+
+          yc "${deploy_args[@]}"
 
       # ---------- Frontend ----------
       - name: Setup Node.js
-        if: ${{ inputs.frontend == true || github.event_name == 'push' }}
+        if: ${{ inputs.frontend == true }}
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: "frontend/package-lock.json"
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Build frontend
-        if: ${{ inputs.frontend == true || github.event_name == 'push' }}
+        if: ${{ inputs.frontend == true }}
         working-directory: frontend
         run: |
+          set -euo pipefail
           npm ci
           npm run build
 
       - name: Upload frontend to Object Storage
-        if: ${{ inputs.frontend == true || github.event_name == 'push' }}
+        if: ${{ inputs.frontend == true }}
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.YC_BUCKET_AK }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.YC_BUCKET_SK }}
+          YC_BUCKET: ${{ secrets.YC_BUCKET }}
         run: |
+          set -euo pipefail
           aws --endpoint-url=https://storage.yandexcloud.net \
-              s3 sync frontend/dist/ "s3://${{ secrets.YC_BUCKET }}/" \
-              --delete --acl public-read
+            s3 sync frontend/dist/ "s3://${YC_BUCKET}/" \
+            --delete \
+            --acl public-read
 
       # ---------- Smoke ----------
-      - name: Wait for revision & smoke /healthz
+      - name: Smoke production
         run: |
-          # Container takes ~10 sec to swap revisions
-          sleep 15
-          # Получаем публичный URL gateway. Можно хранить как secret или вычислять.
-          # Здесь — через `yc serverless api-gateway list`.
-          GW_URL=$(yc serverless api-gateway list --format json | jq -r '.[] | select(.name=="kt-app-gw") | .domain')
-          if [ -z "$GW_URL" ]; then
-            echo "::warning ::API Gateway не найден"
-            exit 0
+          set -euo pipefail
+
+          sleep 20
+
+          curl_flags=(--connect-timeout 8 --max-time 30 --retry 2 --retry-all-errors --retry-delay 2 -fsS)
+          health="$(curl "${curl_flags[@]}" "$PUBLIC_URL/healthz")"
+          echo "$health" | jq '{status, llm_configured}'
+
+          status="$(echo "$health" | jq -r '.status')"
+          llm_configured="$(echo "$health" | jq -r '.llm_configured')"
+          if [ "$status" != "ok" ] || [ "$llm_configured" != "true" ]; then
+            echo "::error ::Bad /healthz response."
+            exit 1
           fi
-          curl -fsS "https://$GW_URL/healthz" | jq '{status, llm_configured}'
+
+          html="$(curl "${curl_flags[@]}" "$PUBLIC_URL/")"
+          title="$(printf '%s' "$html" | grep -o '<title>[^<]*' | head -1 || true)"
+          bundle="$(printf '%s' "$html" | grep -o 'index-[A-Za-z0-9_-]*\.js' | head -1 || true)"
+
+          echo "Title: $title"
+          echo "Bundle: $bundle"
+
+          if ! printf '%s' "$title" | grep -q 'FinUplift'; then
+            echo "::error ::Frontend title is not FinUplift."
+            exit 1
+          fi
+
+          if [ -z "$bundle" ]; then
+            echo "::error ::Could not find frontend index bundle in HTML."
+            exit 1
+          fi
