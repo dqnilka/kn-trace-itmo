@@ -854,7 +854,7 @@ a {
   gap: 14px;
   background: var(--bg-2);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 0;
   padding: 14px 18px;
   box-shadow: var(--shadow-sm);
 }
@@ -883,25 +883,11 @@ a {
   color: var(--blue);
 }
 
-.mini-ring {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
+.stat-ring {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.mini-ring-inner {
-  width: 38px;
-  height: 38px;
-  background: var(--bg-2);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 14px;
+  flex-shrink: 0;
 }
 
 .trainer-tabs {
@@ -1048,7 +1034,8 @@ a {
   justify-content: space-between;
   gap: 12px;
   background: var(--bg-2);
-  border-radius: 10px;
+  border: 1px solid var(--border);
+  border-radius: 0;
   padding: 12px 14px;
 }
 
@@ -1644,57 +1631,20 @@ details[open] summary {
   flex-shrink: 0;
 }
 
-/* === Mastery badges & mini rings === */
+/* === Dashboard progress rings === */
 
-.mb {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 44px;
-  height: 26px;
-  padding: 0 8px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.mb-untouched {
-  background: var(--bg-3);
-  color: var(--fg-3);
-  font-size: 16px;
-  font-weight: 400;
-}
-
-.mb-strong {
-  background: var(--ok-soft);
-  color: var(--ok);
-}
-
-.mb-medium {
-  background: var(--warn-soft);
-  color: var(--warn);
-}
-
-.mb-weak {
-  background: var(--err-soft);
-  color: var(--err);
-}
-
-.ring-mini {
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.pring {
+  display: block;
   flex-shrink: 0;
 }
 
-.ring-mini-inner {
-  background: var(--bg-2);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.dashboard-ring text {
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-ring-sm text {
+  font-weight: 800;
 }
 
 /* Chapter & theme states (left border accent) */
@@ -2239,9 +2189,9 @@ details[open] summary {
 }
 
 .info-tip-icon {
-  background: var(--bg-3);
+  background: var(--bg-2);
   color: var(--fg-2);
-  border: 0;
+  border: 1px solid var(--border-strong);
   cursor: help;
   border-radius: 50%;
   display: inline-flex;
@@ -2249,6 +2199,7 @@ details[open] summary {
   justify-content: center;
   padding: 0;
   font-family: inherit;
+  font-weight: 700;
   user-select: none;
 }
 
@@ -2270,6 +2221,31 @@ details[open] summary {
   background: var(--accent-soft);
   color: var(--accent);
   outline: none;
+}
+
+.info-tip-icon.progress-ring-tip {
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  border-radius: 50%;
+  border: 5px solid var(--bg-3);
+  background: var(--bg-2);
+  color: var(--fg-3);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.info-tip-icon.info-tip-md.progress-ring-tip {
+  width: 44px;
+  height: 44px;
+  font-size: 12px;
+}
+
+.info-tip-icon.progress-ring-tip:hover,
+.info-tip-icon.progress-ring-tip:focus-visible {
+  border-color: var(--accent-soft);
+  background: var(--bg-2);
+  color: var(--accent);
 }
 
 .info-tip-popover {
@@ -2690,20 +2666,6 @@ details[open] summary {
   margin-top: 4px;
 }
 
-.mb-tentative {
-  background: var(--bg-3);
-  color: var(--fg-2);
-  font-weight: 700;
-}
-
-.info-tip-icon.mb {
-  min-width: 44px;
-  width: auto;
-  height: 26px;
-  padding: 0 8px;
-  font-size: 12px;
-}
-
 /* === Learning Path === */
 
 .path-progress {
@@ -3021,6 +2983,10 @@ details[open] summary {
   color: var(--accent);
   box-shadow: var(--shadow-sm);
 }
+.auth-tab:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
 .auth-form {
   display: flex;
   flex-direction: column;
@@ -3030,6 +2996,11 @@ details[open] summary {
 .auth-form .pill-primary {
   width: 100%;
   margin-top: 4px;
+}
+.auth-status {
+  color: var(--fg-2);
+  font-size: 12px;
+  text-align: center;
 }
 
 /* Admin "answer peek" — verified correct option shown before answering */

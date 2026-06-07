@@ -22,27 +22,31 @@ import { getToken } from './state/auth'
 // would otherwise burn tokens and freeze the UI. Callers may pass their own
 // AbortSignal via `init.signal`; we compose it with the timeout below.
 const DEFAULT_TIMEOUT_MS = 90_000
+const AUTH_TIMEOUT_MS = 18_000
+
+type ApiRequestInit = RequestInit & {
+  timeoutMs?: number
+}
 
 /** True if the error is an abort/timeout (vs a real backend error). */
 export function isAbortError(e: unknown): boolean {
   return e instanceof DOMException && e.name === 'AbortError'
 }
 
-async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
+async function fetchJson<T>(url: string, init: ApiRequestInit = {}): Promise<T> {
+  const { timeoutMs = DEFAULT_TIMEOUT_MS, ...fetchInit } = init
   const timeout = new AbortController()
-  const timer = setTimeout(() => timeout.abort(), DEFAULT_TIMEOUT_MS)
+  const timer = setTimeout(() => timeout.abort(), timeoutMs)
   // Compose caller signal (if any) with the timeout signal.
-  const signal = init?.signal
-    ? anySignal([init.signal, timeout.signal])
+  const signal = fetchInit.signal
+    ? anySignal([fetchInit.signal, timeout.signal])
     : timeout.signal
   // Attach bearer token (if logged in) to every request.
   const token = getToken()
-  const headers = {
-    ...(init?.headers || {}),
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  }
+  const headers = new Headers(fetchInit.headers)
+  if (token) headers.set('Authorization', `Bearer ${token}`)
   try {
-    const res = await fetch(url, { ...init, headers, signal })
+    const res = await fetch(url, { ...fetchInit, headers, signal })
     if (!res.ok) {
       const text = await res.text().catch(() => '')
       throw new Error(`${res.status} ${res.statusText}${text ? `: ${text}` : ''}`)
@@ -74,12 +78,14 @@ export const api = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
+      timeoutMs: AUTH_TIMEOUT_MS,
     }),
   login: (body: { email: string; password: string }) =>
     fetchJson<AuthResponse>('/api/v1/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
+      timeoutMs: AUTH_TIMEOUT_MS,
     }),
   me: () => fetchJson<AuthUser>('/api/v1/auth/me'),
   // --- Server-side progress ---

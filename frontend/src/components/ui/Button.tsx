@@ -7,6 +7,7 @@ export default function Button({
   variant = 'primary',
   size = 'md',
   loading = false,
+  loadingLabel,
   full = false,
   className = '',
   children,
@@ -16,6 +17,7 @@ export default function Button({
   variant?: Variant
   size?: 'md' | 'big'
   loading?: boolean
+  loadingLabel?: string
   full?: boolean
 } & ButtonHTMLAttributes<HTMLButtonElement>) {
   const cls = [
@@ -30,7 +32,7 @@ export default function Button({
     .join(' ')
   return (
     <button className={cls} disabled={disabled || loading} {...rest}>
-      {loading ? '…' : children}
+      {loading ? (loadingLabel ?? '…') : children}
     </button>
   )
 }
