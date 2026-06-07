@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import Logo from './components/Logo'
+import BrandWordmark from './components/BrandWordmark'
 import AuthScreen from './screens/AuthScreen'
 import OnboardingScreen from './screens/OnboardingScreen'
 import EntranceTestScreen from './screens/EntranceTestScreen'
@@ -161,10 +161,7 @@ export default function App() {
       <div className="app">
         <header className="app-header">
           <div className="brand">
-            <div className="brand-mark"><Logo size={40} /></div>
-            <div>
-              <div className="brand-title">FinUplift</div>
-            </div>
+            <BrandWordmark />
           </div>
         </header>
         <AuthScreen onAuthed={onAuthed} />
@@ -271,10 +268,7 @@ export default function App() {
     <div className="app">
       <header className="app-header">
         <div className="brand">
-          <div className="brand-mark"><Logo size={40} /></div>
-          <div>
-            <div className="brand-title">FinUplift</div>
-          </div>
+          <BrandWordmark />
         </div>
         <div className="header-right">
           {user?.is_admin && (

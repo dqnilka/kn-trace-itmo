@@ -1,4 +1,4 @@
-import Logo from '../components/Logo'
+import BrandWordmark from '../components/BrandWordmark'
 import Icon, { type IconName } from '../components/ui/Icon'
 import Button from '../components/ui/Button'
 
@@ -31,8 +31,7 @@ export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
       <div className="screen-body centered">
         <div className="welcome-card">
           <div className="welcome-brand">
-            <Logo size={34} />
-            <span className="welcome-brand-name">FinUplift</span>
+            <BrandWordmark />
           </div>
 
           <div className="welcome-eyebrow">Подготовка к экзамену ФСФР</div>

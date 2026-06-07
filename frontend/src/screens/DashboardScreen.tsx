@@ -515,13 +515,7 @@ function VariantsTab({
             <div className="variant-title">{v.title}</div>
             <div className="variant-meta">
               <span className="chip chip-soft">{v.difficulty}</span>
-              {past && (
-                <span
-                  className={`chip ${past.correct / past.total >= 0.8 ? 'chip-ok' : 'chip-muted'}`}
-                >
-                  результат {Math.round((past.correct / past.total) * 100)}%
-                </span>
-              )}
+              {past && <VariantResultChip summary={past} />}
             </div>
             <p className="variant-desc">
               50 вопросов, без подсказок. После завершения — разбор ошибок по
@@ -534,6 +528,30 @@ function VariantsTab({
         )
       })}
     </div>
+  )
+}
+
+function VariantResultChip({ summary }: { summary: ExamVariantSummary }) {
+  const plannedTotal = summary.planned_total ?? summary.total
+  const pct = summary.total > 0 ? Math.round((summary.correct / summary.total) * 100) : 0
+  if (summary.status === 'early') {
+    return (
+      <span className="chip chip-muted">
+        досрочно · {summary.total}/{plannedTotal}
+      </span>
+    )
+  }
+  if (summary.status === 'timeout') {
+    return (
+      <span className="chip chip-muted">
+        время вышло · {summary.total}/{plannedTotal}
+      </span>
+    )
+  }
+  return (
+    <span className={`chip ${pct >= 80 ? 'chip-ok' : 'chip-muted'}`}>
+      результат {pct}%
+    </span>
   )
 }
 
@@ -553,9 +571,12 @@ function MasteryBadge({
         ? 'Решений в этой теме нет. Нажми «Решать», чтобы начать.'
         : `Решено ${score.asked} ${plural(score.asked, 'задача', 'задачи', 'задач')} из ${THEME_MIN_CONFIDENT}+, нужных для оценки.`
     return (
-      <span className="mb mb-tentative" title={help}>
-        ?
-      </span>
+      <InfoTip
+        text={help}
+        label="?"
+        size="md"
+        className="mb mb-tentative"
+      />
     )
   }
   // Confident mastery: prefer server BKT posterior, fall back to count-based pct.
