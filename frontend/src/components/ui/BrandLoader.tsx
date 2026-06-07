@@ -1,4 +1,4 @@
-import Logo from '../Logo'
+import BrandWordmark from '../BrandWordmark'
 
 /**
  * Брендовый лоадер: пульсирующее лого + подпись. Используется на экранах
@@ -14,7 +14,7 @@ export default function BrandLoader({
   return (
     <div className="brand-loader" role="status" aria-live="polite">
       <div className="brand-loader-mark">
-        <Logo size={56} />
+        <BrandWordmark className="brand-loader-wordmark" />
         <span className="brand-loader-ring" aria-hidden="true" />
       </div>
       <div className="brand-loader-label">{label}</div>

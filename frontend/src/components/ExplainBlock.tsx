@@ -54,7 +54,7 @@ export default function ExplainBlock({
         <div className="progress indeterminate">
           <div className="progress-bar" />
         </div>
-        <p className="meta">Подбираем фрагменты учебника и собираем объяснение. До 10 секунд.</p>
+        <p className="meta">Подбираем объяснение по учебнику. Обычно до 10 секунд.</p>
       </div>
     )
   }
@@ -70,28 +70,12 @@ export default function ExplainBlock({
       <div className="explain-head">
         <span className="explain-icon"><Icon name="idea" size={16} /></span>
         <span className="explain-title">Разбор задачи</span>
-        <span className="chip chip-muted">
-          {data.generation_mode === 'llm' ? 'LLM' : 'extractive'}
-        </span>
       </div>
       <div className="theory feedback-theory">
         <SafeMarkdown>
           {data.explanation_md}
         </SafeMarkdown>
       </div>
-      {data.sources.length > 0 && (
-        <details className="explain-sources">
-          <summary>источники: {data.sources.length}</summary>
-          <ul>
-            {data.sources.map((s, i) => (
-              <li key={`${s.node_id}-${i}`}>
-                <code>{s.node_type}</code> {s.snippet.slice(0, 240)}
-                {s.snippet.length > 240 ? '…' : ''}
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
     </div>
   )
 }

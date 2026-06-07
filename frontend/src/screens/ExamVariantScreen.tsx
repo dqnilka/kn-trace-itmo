@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import QuestionCard from '../components/QuestionCard'
+import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { buildIndex, loadBank } from '../state/bank'
 import { bumpMastery, loadMastery, pushVariant, saveMastery, seededSample } from '../state/mastery'
 import type {
@@ -36,6 +37,7 @@ type Phase =
       tasks: BankTask[]
       bank: ExamBank
       answers: AnswerLog[]
+      status: 'completed' | 'early' | 'timeout'
     }
 
 function pickExamSample(bank: ExamBank, variantId: number): BankTask[] {
@@ -62,6 +64,7 @@ export default function ExamVariantScreen({
   onBack: () => void
 }) {
   const [phase, setPhase] = useState<Phase>({ kind: 'loading' })
+  const [confirmFinish, setConfirmFinish] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -98,6 +101,42 @@ export default function ExamVariantScreen({
     })
   }
 
+  const summarizeAndFinish = (
+    answers: AnswerLog[],
+    tasks: BankTask[],
+    bank: ExamBank,
+    status: 'completed' | 'early' | 'timeout',
+  ) => {
+    const idx = buildIndex(bank)
+    const correct = answers.filter((a) => a.is_correct).length
+    const per_chapter: ExamVariantSummary['per_chapter'] = {}
+    for (const a of answers) {
+      const ch = idx.chaptersById.get(a.chapter_id)
+      const key = String(a.chapter_id)
+      const slot = (per_chapter[key] ??= {
+        chapter_id: a.chapter_id,
+        chapter_name: ch?.name ?? 'Без раздела',
+        asked: 0,
+        wrong: 0,
+      })
+      slot.asked += 1
+      if (!a.is_correct) slot.wrong += 1
+    }
+    if (answers.length > 0) {
+      pushVariant({
+        variant_id: variantId,
+        taken_at: new Date().toISOString(),
+        total: answers.length,
+        planned_total: tasks.length,
+        correct,
+        status,
+        per_chapter,
+      })
+    }
+    setConfirmFinish(false)
+    setPhase({ kind: 'done', tasks, bank, answers, status })
+  }
+
   const onAnswer = (outcome: {
     picked_label: string
     correct_label: string
@@ -118,33 +157,7 @@ export default function ExamVariantScreen({
     saveMastery(bumpMastery(loadMastery(), task.theme_code, outcome.is_correct))
     const next = phase.index + 1
     if (next >= phase.tasks.length) {
-      const correct = answers.filter((a) => a.is_correct).length
-      const per_chapter: ExamVariantSummary['per_chapter'] = {}
-      for (const a of answers) {
-        const ch = idx.chaptersById.get(a.chapter_id)
-        const key = String(a.chapter_id)
-        const slot = (per_chapter[key] ??= {
-          chapter_id: a.chapter_id,
-          chapter_name: ch?.name ?? 'Без раздела',
-          asked: 0,
-          wrong: 0,
-        })
-        slot.asked += 1
-        if (!a.is_correct) slot.wrong += 1
-      }
-      pushVariant({
-        variant_id: variantId,
-        taken_at: new Date().toISOString(),
-        total: answers.length,
-        correct,
-        per_chapter,
-      })
-      setPhase({
-        kind: 'done',
-        tasks: phase.tasks,
-        bank: phase.bank,
-        answers,
-      })
+      summarizeAndFinish(answers, phase.tasks, phase.bank, 'completed')
       return
     }
     setPhase({ ...phase, index: next, answers })
@@ -152,35 +165,7 @@ export default function ExamVariantScreen({
 
   const finishEarly = () => {
     if (phase.kind !== 'asking') return
-    // treat unanswered as wrong — submit as-is up to current index
-    const idx = buildIndex(phase.bank)
-    const correct = phase.answers.filter((a) => a.is_correct).length
-    const per_chapter: ExamVariantSummary['per_chapter'] = {}
-    for (const a of phase.answers) {
-      const ch = idx.chaptersById.get(a.chapter_id)
-      const key = String(a.chapter_id)
-      const slot = (per_chapter[key] ??= {
-        chapter_id: a.chapter_id,
-        chapter_name: ch?.name ?? 'Без раздела',
-        asked: 0,
-        wrong: 0,
-      })
-      slot.asked += 1
-      if (!a.is_correct) slot.wrong += 1
-    }
-    pushVariant({
-      variant_id: variantId,
-      taken_at: new Date().toISOString(),
-      total: phase.answers.length,
-      correct,
-      per_chapter,
-    })
-    setPhase({
-      kind: 'done',
-      tasks: phase.tasks,
-      bank: phase.bank,
-      answers: phase.answers,
-    })
+    setConfirmFinish(true)
   }
 
   const { chaptersOfTasks } = useMemo(() => {
@@ -258,7 +243,8 @@ export default function ExamVariantScreen({
     const correct = phase.answers.filter((a) => a.is_correct).length
     const total = phase.answers.length
     const pct = total === 0 ? 0 : Math.round((correct / total) * 100)
-    const passed = pct >= 80
+    const isPartial = phase.status !== 'completed'
+    const passed = !isPartial && pct >= 80
     const idx = buildIndex(phase.bank)
     const byChapter = new Map<
       number,
@@ -281,12 +267,20 @@ export default function ExamVariantScreen({
     return (
       <div className="screen">
         <div className="screen-body narrow centered">
+          {isPartial && (
+            <div className="banner-warn" style={{ marginBottom: 16 }}>
+              <div className="banner-body">
+                Попытка завершена досрочно. Это тренировочный срез по сделанным
+                ответам ({total} из {phase.tasks.length}), без статуса «сдано».
+              </div>
+            </div>
+          )}
           <div className="trophy">{passed ? '' : ''}</div>
           <h1 className="screen-title">
-            {passed ? 'Сдано!' : 'Чуть-чуть не хватило'}
+            {isPartial ? 'Тренировочный срез' : passed ? 'Сдано!' : 'Чуть-чуть не хватило'}
           </h1>
           <p className="screen-subtitle">
-            Пробный вариант №{variantId} · {correct} из {total} верно
+            Пробный вариант №{variantId} · {correct} из {total || phase.tasks.length} верно
           </p>
           <div className="score-card big">
             <div
@@ -295,7 +289,9 @@ export default function ExamVariantScreen({
             >
               {pct}%
             </div>
-            <div className="score-card-meta">проходной 80%</div>
+            <div className="score-card-meta">
+              {isPartial ? `${total} из ${phase.tasks.length} вопросов` : 'проходной 80%'}
+            </div>
           </div>
 
           <h2 className="section-title">По разделам</h2>
@@ -339,6 +335,17 @@ export default function ExamVariantScreen({
 
   return (
     <div className="screen">
+      <ConfirmDialog
+        open={confirmFinish}
+        title="Завершить пробник досрочно?"
+        text={`Сейчас отвечено ${phase.answers.length} из ${phase.tasks.length}. Покажем тренировочный срез и пометим попытку как досрочную, без статуса «сдано».`}
+        confirmLabel="Завершить"
+        cancelLabel="Продолжить решать"
+        onConfirm={() =>
+          summarizeAndFinish(phase.answers, phase.tasks, phase.bank, 'early')
+        }
+        onCancel={() => setConfirmFinish(false)}
+      />
       <div className="screen-head">
         <button className="link-button" onClick={finishEarly}>
           завершить досрочно

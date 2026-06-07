@@ -1,10 +1,20 @@
 import { useState } from 'react'
 import { api, isAbortError } from '../api'
-import Logo from '../components/Logo'
+import BrandWordmark from '../components/BrandWordmark'
 import Button from '../components/ui/Button'
 import Field from '../components/ui/Field'
 import { setToken } from '../state/auth'
 import type { AuthUser } from '../types'
+
+function formatAuthError(e: unknown): string {
+  const msg = e instanceof Error ? e.message : String(e)
+  const detail = msg.match(/"detail":"([^"]+)"/)?.[1]
+  const text = detail || msg
+  if (/internal server error|failed to fetch|network error|load failed/i.test(text)) {
+    return 'Сервис авторизации временно недоступен. Попробуйте еще раз через пару минут.'
+  }
+  return text
+}
 
 /**
  * Вход / регистрация. Сдержанная центрированная карточка с переключателем-
@@ -44,9 +54,7 @@ export default function AuthScreen({
       onAuthed(res.user)
     } catch (e) {
       if (!isAbortError(e)) {
-        const msg = e instanceof Error ? e.message : String(e)
-        const m = msg.match(/"detail":"([^"]+)"/)
-        setErr(m ? m[1] : msg)
+        setErr(formatAuthError(e))
       }
     } finally {
       setBusy(false)
@@ -62,11 +70,11 @@ export default function AuthScreen({
     <div className="screen">
       <div className="screen-body centered">
         <div className="auth-card">
-          <div className="auth-logo">
-            <Logo size={52} />
-          </div>
-          <h1 className="screen-title" style={{ textAlign: 'center', marginBottom: 4 }}>
-            FinUplift
+          <h1
+            className="screen-title auth-wordmark-title"
+            style={{ textAlign: 'center', marginBottom: 4 }}
+          >
+            <BrandWordmark />
           </h1>
           <p
             className="screen-subtitle"

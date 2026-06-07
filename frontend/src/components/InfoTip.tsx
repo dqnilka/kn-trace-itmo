@@ -10,10 +10,14 @@ import { createPortal } from 'react-dom'
 export default function InfoTip({
   text,
   size = 'sm',
+  label = 'ⓘ',
+  className = '',
 }: {
   text: string
   size?: 'sm' | 'md'
   align?: 'left' | 'right' | 'center'
+  label?: string
+  className?: string
 }) {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
@@ -51,7 +55,7 @@ export default function InfoTip({
       <button
         ref={ref}
         type="button"
-        className={`info-tip-icon info-tip-${size}`}
+        className={`info-tip-icon info-tip-${size} ${className}`}
         aria-label="Подсказка"
         onMouseEnter={() => setOpen(true)}
         onMouseLeave={() => setOpen(false)}
@@ -61,7 +65,7 @@ export default function InfoTip({
           setOpen((o) => !o)
         }}
       >
-        ⓘ
+        {label}
       </button>
       {open &&
         pos &&

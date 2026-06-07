@@ -96,7 +96,9 @@ export type ExamVariantSummary = {
   variant_id: number
   taken_at: string
   total: number
+  planned_total?: number
   correct: number
+  status?: 'completed' | 'early' | 'timeout'
   per_chapter: Record<
     string,
     { chapter_id: number; chapter_name: string; asked: number; wrong: number }

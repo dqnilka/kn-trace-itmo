@@ -7,7 +7,7 @@ import MasteryRings from '../components/MasteryRings'
 import ProgressRing from '../components/ui/ProgressRing'
 import RateWidget from '../components/ui/RateWidget'
 import Icon, { type IconName } from '../components/ui/Icon'
-import Logo from '../components/Logo'
+import BrandWordmark from '../components/BrandWordmark'
 
 /** Витрина дизайн-системы FinUplift — открывается по ?kit=1. */
 export default function KitScreen() {
@@ -25,13 +25,20 @@ export default function KitScreen() {
     <div className="app">
       <header className="app-header">
         <div className="brand">
-          <div className="brand-mark">
-            <Logo size={40} />
-          </div>
-          <div className="brand-title">FinUplift · UI Kit</div>
+          <BrandWordmark />
+          <div className="brand-title">UI Kit</div>
         </div>
       </header>
       <div className="screen-body kit-body">
+        <h2 className="kit-h">Бренд</h2>
+        <Card framed className="kit-brand-card">
+          <BrandWordmark className="kit-wordmark" />
+          <p className="meta">
+            Основной знак — только wordmark. В favicon используется компактное
+            «UP», без стрелок и дополнительных символов.
+          </p>
+        </Card>
+
         <h2 className="kit-h">Цвета</h2>
         <div className="kit-swatches">
           {swatches.map(([v, label]) => (
