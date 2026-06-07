@@ -226,7 +226,7 @@ export default function ExamVariantScreen({
           <ul className="exam-rules">
             <li>Подсказки отключены — отвечай как на настоящем экзамене.</li>
             <li>Можно завершить досрочно, тогда оценим по сделанному.</li>
-            <li>Проходной балл — 80%.</li>
+            <li>Проходной уровень — 80.</li>
             <li>Результаты появятся в истории и обновят прогноз.</li>
           </ul>
           <div className="actions-row">
@@ -287,10 +287,10 @@ export default function ExamVariantScreen({
               className="ring-value-xl"
               style={{ color: passed ? '#16a34a' : '#ef4444' }}
             >
-              {pct}%
+              {pct}
             </div>
             <div className="score-card-meta">
-              {isPartial ? `${total} из ${phase.tasks.length} вопросов` : 'проходной 80%'}
+              {isPartial ? `${total} из ${phase.tasks.length} вопросов` : 'проходной уровень 80'}
             </div>
           </div>
 

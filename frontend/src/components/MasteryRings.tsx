@@ -109,7 +109,7 @@ function Ring({
           className="mr-ring-pct"
           fontSize={size * 0.26}
         >
-          {Math.round(animated * 100)}%
+          {Math.round(animated * 100)}
         </text>
       </svg>
       <div className={`mr-delta mr-${dir}`}>

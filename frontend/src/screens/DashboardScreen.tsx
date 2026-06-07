@@ -35,13 +35,10 @@ const VARIANTS = [
   { id: 4, title: 'Пробный вариант №4', difficulty: 'Финальный' },
 ]
 
-const PASS_THRESHOLD = 80 // % правильных ответов = условный «сдашь экзамен»
+const PASS_THRESHOLD = 80
 
 // Knowledge level on a 0-100 "will-I-pass" scale.
-// Below ПРОХОДНОЙ (80% correct) it scales linearly to a comfortable margin.
 function knowledgeLevel(pct: number): number {
-  // Match the exam's pass threshold: at 80% correct → ~80 on the scale.
-  // Below: linear with floor at 0. Above: small headroom so 100% correct → 100.
   return Math.max(0, Math.min(100, Math.round(pct * 100)))
 }
 
@@ -272,7 +269,7 @@ export default function DashboardScreen({
         <StatCard
           label="Пробные варианты"
           tooltip={
-            'История пробных экзаменов: 50 вопросов, без подсказок. Проходной балл — 80%. ' +
+            'История пробных экзаменов: 50 вопросов, без подсказок. Проходной уровень — 80. ' +
             'Помогает понять реальную готовность.'
           }
           value={
@@ -529,7 +526,7 @@ function VariantResultChip({ summary }: { summary: ExamVariantSummary }) {
   }
   return (
     <span className={`chip ${pct >= 80 ? 'chip-ok' : 'chip-muted'}`}>
-      результат {pct}%
+      уровень {pct}
     </span>
   )
 }
@@ -565,8 +562,8 @@ function MasteryBadge({
     <DashboardProgressRing
       value={rounded}
       size={44}
-      label={`${rounded}%`}
-      title={`${Math.round(pct)}% уровень знаний по BKT-модели (${score.asked} ${plural(score.asked, 'ответ', 'ответа', 'ответов')})`}
+      label={`${rounded}`}
+      title={`Уровень знаний ${Math.round(pct)} по BKT-модели (${score.asked} ${plural(score.asked, 'ответ', 'ответа', 'ответов')})`}
     />
   )
 }

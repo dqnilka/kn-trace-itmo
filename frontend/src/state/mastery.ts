@@ -92,7 +92,7 @@ export function themePct(store: MasteryStore, theme_code: string): number | null
 }
 
 // Confidence thresholds: how many answers we need before the mastery number is
-// trustworthy enough to display as a colored % rather than a "?".
+// trustworthy enough to display as a colored level rather than a "?".
 export const THEME_MIN_CONFIDENT = 3
 export const CHAPTER_MIN_CONFIDENT = 6
 export const OVERALL_MIN_CONFIDENT = 20

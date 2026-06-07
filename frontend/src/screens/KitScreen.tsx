@@ -128,7 +128,7 @@ export default function KitScreen() {
                 tone="warn"
                 size={44}
                 stroke={5}
-                label="61%"
+                label="61"
                 className="dashboard-ring dashboard-ring-sm"
               />
             </div>

@@ -90,7 +90,7 @@ export default function LearningPathScreen({
   const [phase, setPhase] = useState<Phase>({ kind: 'loading' })
   const [confirmExit, setConfirmExit] = useState(false)
   // Snapshot of mastery BEFORE the session — used to animate the rings
-  // (before% → after%) on the completion screen.
+  // (before -> after) on the completion screen.
   const prevMasteryRef = useRef<MasteryStore>({})
 
   const exitDialog = (

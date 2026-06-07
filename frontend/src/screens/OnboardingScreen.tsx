@@ -2,30 +2,31 @@ import BrandWordmark from '../components/BrandWordmark'
 import Icon, { type IconName } from '../components/ui/Icon'
 import Button from '../components/ui/Button'
 
-/**
- * Приветственный экран после регистрации — один содержательный шаг:
- * ценностный заголовок + три понятных пункта «как это работает» + CTA на
- * входной тест. Без пустоты и лишних иконок.
- */
 const POINTS: { icon: IconName; title: string; text: string }[] = [
   {
     icon: 'target',
-    title: 'Входной тест за 5 минут',
-    text: 'Покрывает все 13 разделов и сразу показывает, где у тебя пробелы.',
+    title: 'Диагностика по всем разделам',
+    text: '25 вопросов показывают стартовый уровень знаний и темы, с которых лучше начать.',
+  },
+  {
+    icon: 'layers',
+    title: 'Личный маршрут подготовки',
+    text: 'Занятия подбираются по пробелам: сначала фундамент, потом более точные темы.',
   },
   {
     icon: 'theory',
-    title: 'Теория под конкретные задания',
-    text: 'Короткий разбор именно того, что спрашивают в задачах темы.',
-  },
-  {
-    icon: 'practice',
-    title: 'Практика и прогресс',
-    text: 'Решаешь, видишь разбор ошибок и рост уровня по каждой теме.',
+    title: 'Теория рядом с практикой',
+    text: 'Короткие объяснения идут перед заданиями и помогают закреплять именно нужные понятия.',
   },
 ]
 
-export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
+export default function OnboardingScreen({
+  onStart,
+  onSkip,
+}: {
+  onStart: () => void
+  onSkip: () => void
+}) {
   return (
     <div className="screen">
       <div className="screen-body centered">
@@ -34,9 +35,9 @@ export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
             <BrandWordmark />
           </div>
 
-          <div className="welcome-eyebrow">Подготовка к экзамену ФСФР</div>
+          <div className="welcome-eyebrow">Подготовка к базовому ФСФР</div>
           <h1 className="welcome-title">
-            Учим только то, где у тебя пробелы — до проходного балла
+            Построим личный маршрут к проходному уровню
           </h1>
 
           <div className="welcome-points">
@@ -54,11 +55,11 @@ export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
           </div>
 
           <div className="welcome-actions">
-            <Button size="big" full onClick={onDone}>
-              Пройти входной тест →
+            <Button size="big" full onClick={onStart}>
+              Начать входной тест →
             </Button>
-            <button className="link-button welcome-skip" onClick={onDone}>
-              Пропустить пока
+            <button className="link-button welcome-skip" onClick={onSkip}>
+              Перейти к занятиям
             </button>
           </div>
         </div>

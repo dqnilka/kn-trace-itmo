@@ -47,6 +47,12 @@ export default function ProgressRing({
     <svg
       width={size}
       height={size}
+      style={{
+        width: size,
+        height: size,
+        minWidth: size,
+        minHeight: size,
+      }}
       viewBox={`0 0 ${size} ${size}`}
       className={`pring ${className}`.trim()}
       role="img"
